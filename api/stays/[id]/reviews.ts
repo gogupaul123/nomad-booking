@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
 
 import { parseJsonBody, sendJson, sendRouteError } from "../../_lib/response"
-import { addReview, getReviewsByStayId } from "@/features/stays/mock-store"
+import { addReview, getReviewsByBookingId } from "@/features/stays/mock-store"
 import { reviewInputSchema } from "@/features/stays/schemas"
 
 function getStayId(request: VercelRequest) {
@@ -10,26 +10,26 @@ function getStayId(request: VercelRequest) {
 }
 
 export default function handler(request: VercelRequest, response: VercelResponse) {
-  const stayId = getStayId(request)
+  const bookingId = getStayId(request)
 
-  if (!stayId) {
-    sendJson(response, 400, { message: "Stay id is required." })
+  if (!bookingId) {
+    sendJson(response, 400, { message: "Booking id is required." })
     return
   }
 
   try {
     if (request.method === "GET") {
-      sendJson(response, 200, getReviewsByStayId(stayId))
+      sendJson(response, 200, getReviewsByBookingId(bookingId))
       return
     }
 
     if (request.method === "POST") {
       const review = addReview(
-        stayId,
+        bookingId,
         reviewInputSchema.parse(parseJsonBody(request.body))
       )
 
-      console.info("review_created", { stayId, reviewId: review.id })
+      console.info("review_created", { bookingId, reviewId: review.id })
       sendJson(response, 200, review)
       return
     }

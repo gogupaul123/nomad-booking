@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
 
 import { parseJsonBody, sendJson, sendRouteError } from "./_lib/response"
-import { createBooking } from "@/features/stays/mock-store"
-import { bookingInputSchema } from "@/features/stays/schemas"
+import { createReservation } from "@/features/stays/mock-store"
+import { reservationInputSchema } from "@/features/stays/schemas"
 
 export default function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== "POST") {
@@ -11,15 +11,15 @@ export default function handler(request: VercelRequest, response: VercelResponse
   }
 
   try {
-    const booking = createBooking(
-      bookingInputSchema.parse(parseJsonBody(request.body))
+    const reservation = createReservation(
+      reservationInputSchema.parse(parseJsonBody(request.body))
     )
 
-    console.info("booking_created", {
-      bookingId: booking.id,
-      stayId: booking.stayId,
+    console.info("reservation_created", {
+      reservationId: reservation.id,
+      bookingId: reservation.bookingId,
     })
-    sendJson(response, 200, booking)
+    sendJson(response, 200, reservation)
   } catch (error) {
     sendRouteError(response, error)
   }

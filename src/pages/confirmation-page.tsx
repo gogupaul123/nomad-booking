@@ -2,12 +2,12 @@ import { Link, useLocation } from "react-router-dom"
 
 import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { bookingConfirmationSchema } from "@/features/stays/schemas"
+import { reservationSchema } from "@/features/stays/schemas"
 import { formatCurrency, formatDateTime } from "@/lib/formatters"
 
 export function ConfirmationPage() {
   const location = useLocation()
-  const parsedConfirmation = bookingConfirmationSchema.safeParse(location.state)
+  const parsedConfirmation = reservationSchema.safeParse(location.state)
 
   if (!parsedConfirmation.success) {
     return (
@@ -20,7 +20,7 @@ export function ConfirmationPage() {
             This mock flow keeps the confirmation in navigation state instead of
             a persistent bookings table.
           </p>
-          <Link className={buttonVariants()} to="/">
+          <Link className={buttonVariants()} to="/feed">
             Return to home
           </Link>
         </CardContent>
@@ -34,17 +34,17 @@ export function ConfirmationPage() {
     <Card className="border border-white/70 bg-white/90 py-0 shadow-[0_24px_72px_-42px_rgba(16,42,72,0.38)] dark:border-white/10 dark:bg-white/5">
       <CardHeader>
         <p className="text-[0.74rem] font-black uppercase tracking-[0.42em] text-primary">
-          Booking confirmed
+          Reservation confirmed
         </p>
-        <CardTitle className="text-3xl">Your stay is reserved.</CardTitle>
+        <CardTitle className="text-3xl">Your booking is reserved.</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 pb-4">
         <div className="grid gap-4 rounded-[24px] border border-border/70 bg-muted/25 p-5 sm:grid-cols-2">
           <div>
             <p className="text-sm uppercase tracking-[0.28em] text-muted-foreground">
-              Stay
+              Reservation
             </p>
-            <p className="mt-2 text-lg font-semibold">{confirmation.stayName}</p>
+            <p className="mt-2 text-lg font-semibold">{confirmation.bookingName}</p>
             <p className="text-sm text-muted-foreground">
               {confirmation.location.city}, {confirmation.location.country}
             </p>
@@ -70,14 +70,14 @@ export function ConfirmationPage() {
           account area.
         </div>
         <div className="flex flex-wrap gap-3">
-          <Link className={buttonVariants()} to="/">
-            Browse more stays
+          <Link className={buttonVariants()} to="/feed">
+            Browse more bookings
           </Link>
           <Link
             className={buttonVariants({ variant: "outline" })}
-            to={`/stays/${confirmation.stayId}`}
+            to={`/bookings/${confirmation.bookingId}`}
           >
-            Return to stay page
+            Return to booking page
           </Link>
         </div>
       </CardContent>

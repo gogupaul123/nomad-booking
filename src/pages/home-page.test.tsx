@@ -32,26 +32,26 @@ describe("HomePage", () => {
     vi.unstubAllGlobals()
   })
 
-  it("renders stays returned by the API", async () => {
+  it("renders bookings returned by the API", async () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response(
         JSON.stringify({
-          stays: [
+          bookings: [
             {
-              id: "stay_lisbon-loft",
+              id: "booking_lisbon-loft",
               slug: "lisbon-loft-house",
               name: "Lisbon Loft House",
               location: { city: "Lisbon", country: "Portugal" },
-              tagline: "Sunlit loft suites two streets away from a calm cafe.",
+              description:
+                "Sunlit loft suites with reliable workstations and calm neighborhood energy.",
               nightlyRate: 164,
               rating: 4.5,
               reviewCount: 2,
-              tags: ["City pulse"],
-              remoteWorkPerks: ["500 Mbps Wi-Fi"],
+              amenities: ["Fast Wi-Fi", "Dedicated desk"],
               availabilityLabel: "Next opening: Mar 28",
-              visual: {
-                gradient: "linear-gradient(135deg, #123456, #abcdef)",
-                eyebrow: "Atlantic focus",
+              image: {
+                src: "https://images.example.com/lisbon.jpg",
+                alt: "Lisbon loft interior",
               },
             },
           ],
@@ -66,17 +66,17 @@ describe("HomePage", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: /book focused stays with hotel polish and remote-work amenities/i,
+        name: /explore bookable stays/i,
       })
     ).toBeInTheDocument()
     expect(await screen.findByText("Lisbon Loft House")).toBeInTheDocument()
   })
 
-  it("shows an empty state when no stays match", async () => {
+  it("shows an empty state when no bookings match", async () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response(
         JSON.stringify({
-          stays: [],
+          bookings: [],
           availableCities: ["Lisbon"],
           total: 0,
         }),
@@ -87,7 +87,7 @@ describe("HomePage", () => {
     renderHomePage()
 
     expect(
-      await screen.findByText(/no stays matched this search/i)
+      await screen.findByText(/no bookings matched this search/i)
     ).toBeInTheDocument()
   })
 })

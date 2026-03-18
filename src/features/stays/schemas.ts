@@ -16,7 +16,7 @@ function optionalTrimmedString(maxLength: number) {
   }, z.string().max(maxLength).optional())
 }
 
-export const staySearchParamsSchema = z.object({
+export const bookingSearchParamsSchema = z.object({
   query: optionalTrimmedString(80),
   city: optionalTrimmedString(60),
   sort: z.preprocess(
@@ -26,19 +26,39 @@ export const staySearchParamsSchema = z.object({
 })
 
 export const checkoutSearchParamsSchema = z.object({
-  stayId: z.preprocess(firstValue, z.string().min(1)),
+  bookingId: z.preprocess(firstValue, z.string().min(1)),
   slotId: z.preprocess(firstValue, z.string().min(1)),
 })
 
-export const stayLocationSchema = z.object({
+export const bookingLocationSchema = z.object({
   city: z.string().min(1),
   country: z.string().min(1),
 })
 
-export const stayVisualSchema = z.object({
-  gradient: z.string().min(1),
-  eyebrow: z.string().min(1),
+export const bookingImageSchema = z.object({
+  src: z.string().url(),
+  alt: z.string().min(1),
 })
+
+export const amenitySchema = z.enum([
+  "Fast Wi-Fi",
+  "Dedicated desk",
+  "Monitor",
+  "Ergonomic chair",
+  "Phone booth",
+  "Standing desk",
+  "Self check-in",
+  "Breakfast included",
+  "Coffee station",
+  "Air conditioning",
+  "Kitchen",
+  "Laundry machine",
+  "Gym access",
+  "Late check-out",
+  "Quiet hours",
+  "Swimming pool",
+  "Takeout",
+])
 
 export const availabilitySlotSchema = z.object({
   id: z.string().min(1),
@@ -50,32 +70,31 @@ export const availabilitySlotSchema = z.object({
   isAvailable: z.boolean(),
 })
 
-export const staySummarySchema = z.object({
+export const bookingCardSchema = z.object({
   id: z.string().min(1),
   slug: z.string().min(1),
   name: z.string().min(1),
-  location: stayLocationSchema,
-  tagline: z.string().min(1),
+  location: bookingLocationSchema,
+  description: z.string().min(1),
   nightlyRate: z.number().positive(),
   rating: z.number().min(0).max(5),
   reviewCount: z.number().int().nonnegative(),
-  tags: z.array(z.string().min(1)).min(1),
-  remoteWorkPerks: z.array(z.string().min(1)).min(1),
+  amenities: z.array(amenitySchema).min(1),
   availabilityLabel: z.string().min(1),
-  visual: stayVisualSchema,
+  image: bookingImageSchema,
 })
 
-export const stayDetailSchema = staySummarySchema.extend({
-  description: z.string().min(1),
+export const bookingDetailsSchema = bookingCardSchema.extend({
   hostType: z.string().min(1),
   cancellationPolicy: z.string().min(1),
   workspaceHighlights: z.array(z.string().min(1)).min(1),
+  images: z.array(bookingImageSchema).min(1),
   availabilitySlots: z.array(availabilitySlotSchema).min(1),
 })
 
 export const reviewSchema = z.object({
   id: z.string().min(1),
-  stayId: z.string().min(1),
+  bookingId: z.string().min(1),
   author: z.string().min(1),
   rating: z.number().int().min(1).max(5),
   comment: z.string().min(1),
@@ -88,8 +107,8 @@ export const reviewInputSchema = z.object({
   comment: z.string().trim().min(20).max(280),
 })
 
-export const bookingInputSchema = z.object({
-  stayId: z.string().min(1),
+export const reservationInputSchema = z.object({
+  bookingId: z.string().min(1),
   slotId: z.string().min(1),
   guestName: z.string().trim().min(2).max(80),
   email: z.string().trim().email(),
@@ -101,20 +120,20 @@ export const bookingInputSchema = z.object({
     .transform((value) => (value && value.length > 0 ? value : undefined)),
 })
 
-export const bookingConfirmationSchema = z.object({
+export const reservationSchema = z.object({
   id: z.string().min(1),
-  stayId: z.string().min(1),
-  stayName: z.string().min(1),
+  bookingId: z.string().min(1),
+  bookingName: z.string().min(1),
   slotLabel: z.string().min(1),
-  location: stayLocationSchema,
+  location: bookingLocationSchema,
   totalPrice: z.number().positive(),
   guestName: z.string().min(1),
-  email: z.string().email(),
+  email: z.email(),
   confirmedAt: z.iso.datetime(),
 })
 
-export const staysResponseSchema = z.object({
-  stays: z.array(staySummarySchema),
+export const bookingCardsResponseSchema = z.object({
+  bookings: z.array(bookingCardSchema),
   availableCities: z.array(z.string().min(1)),
   total: z.number().int().nonnegative(),
 })
@@ -124,11 +143,12 @@ export const reviewsResponseSchema = z.object({
 })
 
 export type AvailabilitySlot = z.infer<typeof availabilitySlotSchema>
-export type BookingConfirmation = z.infer<typeof bookingConfirmationSchema>
-export type BookingInput = z.infer<typeof bookingInputSchema>
+export type Amenity = z.infer<typeof amenitySchema>
+export type BookingCard = z.infer<typeof bookingCardSchema>
+export type BookingDetails = z.infer<typeof bookingDetailsSchema>
+export type BookingSearchParams = z.infer<typeof bookingSearchParamsSchema>
 export type CheckoutSearchParams = z.infer<typeof checkoutSearchParamsSchema>
+export type Reservation = z.infer<typeof reservationSchema>
+export type ReservationInput = z.infer<typeof reservationInputSchema>
 export type Review = z.infer<typeof reviewSchema>
 export type ReviewInput = z.infer<typeof reviewInputSchema>
-export type StayDetail = z.infer<typeof stayDetailSchema>
-export type StaySearchParams = z.infer<typeof staySearchParamsSchema>
-export type StaySummary = z.infer<typeof staySummarySchema>

@@ -13,10 +13,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { postBooking } from "@/features/stays/api-client"
-import { stayDetailQueryOptions, stayKeys } from "@/features/stays/query-options"
+import { postReservation } from "@/features/stays/api-client"
 import {
-  bookingInputSchema,
+  bookingDetailsQueryOptions,
+  bookingKeys,
+} from "@/features/stays/query-options"
+import {
+  reservationInputSchema,
   checkoutSearchParamsSchema,
 } from "@/features/stays/schemas"
 import { formatCurrency, formatSlotRange } from "@/lib/formatters"
@@ -27,20 +30,22 @@ export function CheckoutPage() {
   const queryClient = useQueryClient()
   const [formError, setFormError] = useState<string | null>(null)
   const parsedSearch = checkoutSearchParamsSchema.safeParse({
-    stayId: searchParams.get("stayId") ?? undefined,
+    bookingId: searchParams.get("bookingId") ?? undefined,
     slotId: searchParams.get("slotId") ?? undefined,
   })
 
-  const stayId = parsedSearch.success ? parsedSearch.data.stayId : ""
-  const stayQuery = useQuery(stayDetailQueryOptions(stayId))
+  const bookingId = parsedSearch.success ? parsedSearch.data.bookingId : ""
+  const bookingQuery = useQuery(bookingDetailsQueryOptions(bookingId))
 
-  const bookingMutation = useMutation({
-    mutationFn: postBooking,
-    onSuccess: (confirmation) => {
-      void queryClient.invalidateQueries({ queryKey: stayKeys.detail(stayId) })
-      void queryClient.invalidateQueries({ queryKey: stayKeys.lists() })
+  const reservationMutation = useMutation({
+    mutationFn: postReservation,
+    onSuccess: (reservation) => {
+      void queryClient.invalidateQueries({
+        queryKey: bookingKeys.detail(bookingId),
+      })
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.lists() })
       startTransition(() => {
-        navigate("/confirmation", { state: confirmation })
+        navigate("/confirmation", { state: reservation })
       })
     },
   })
@@ -50,18 +55,18 @@ export function CheckoutPage() {
       <Alert variant="destructive">
         <AlertTitle>Checkout link is incomplete</AlertTitle>
         <AlertDescription>
-          Pick a stay and an availability window before opening checkout.
+          Pick a booking and an availability window before opening checkout.
         </AlertDescription>
       </Alert>
     )
   }
 
-  if (stayQuery.isPending || !stayQuery.data) {
+  if (bookingQuery.isPending || !bookingQuery.data) {
     return <Card className="h-80 animate-pulse rounded-[28px]" />
   }
 
-  const stay = stayQuery.data
-  const slot = stay.availabilitySlots.find(
+  const booking = bookingQuery.data
+  const slot = booking.availabilitySlots.find(
     (candidate) => candidate.id === parsedSearch.data.slotId
   )
 
@@ -86,15 +91,17 @@ export function CheckoutPage() {
           </p>
         </CardHeader>
         <CardContent className="space-y-4 pb-4">
-          <div
-            aria-hidden="true"
-            className="aspect-[4/3] rounded-[24px] border border-border/60"
-            style={{ backgroundImage: stay.visual.gradient }}
-          />
+          <div className="aspect-[4/3] overflow-hidden rounded-[24px] border border-border/60">
+            <img
+              alt={booking.image.alt}
+              className="h-full w-full object-cover"
+              src={booking.image.src}
+            />
+          </div>
           <div>
-            <p className="text-xl font-semibold">{stay.name}</p>
+            <p className="text-xl font-semibold">{booking.name}</p>
             <p className="text-sm text-muted-foreground">
-              {stay.location.city}, {stay.location.country}
+              {booking.location.city}, {booking.location.country}
             </p>
           </div>
           <div className="rounded-[20px] border border-border/70 bg-muted/30 p-4 text-sm">
@@ -108,9 +115,9 @@ export function CheckoutPage() {
           </div>
           <Link
             className={buttonVariants({ size: "sm", variant: "outline" })}
-            to={`/stays/${stay.id}`}
+            to={`/bookings/${booking.id}`}
           >
-            Back to stay details
+            Back to booking details
           </Link>
         </CardContent>
       </Card>
@@ -126,23 +133,24 @@ export function CheckoutPage() {
               event.preventDefault()
               const formData = new FormData(event.currentTarget)
 
-              const parsedBooking = bookingInputSchema.safeParse({
-                stayId: stay.id,
+              const parsedReservation = reservationInputSchema.safeParse({
+                bookingId: booking.id,
                 slotId: slot.id,
                 guestName: formData.get("guestName"),
                 email: formData.get("email"),
                 specialRequests: formData.get("specialRequests"),
               })
 
-              if (!parsedBooking.success) {
+              if (!parsedReservation.success) {
                 setFormError(
-                  parsedBooking.error.issues[0]?.message ?? "Invalid booking request."
+                  parsedReservation.error.issues[0]?.message ??
+                    "Invalid reservation request."
                 )
                 return
               }
 
               try {
-                await bookingMutation.mutateAsync(parsedBooking.data)
+                await reservationMutation.mutateAsync(parsedReservation.data)
               } catch (error) {
                 setFormError(
                   error instanceof Error
@@ -179,22 +187,24 @@ export function CheckoutPage() {
 
             <div className="rounded-[20px] border border-border/70 bg-muted/25 p-4 text-sm text-muted-foreground">
               Payment is mocked for the challenge. Submitting this form calls
-              the backend booking function and returns a confirmation state.
+              the backend reservation function and returns a confirmation state.
             </div>
 
             {formError ? (
               <Alert variant="destructive">
-                <AlertTitle>Booking not confirmed</AlertTitle>
+                <AlertTitle>Reservation not confirmed</AlertTitle>
                 <AlertDescription>{formError}</AlertDescription>
               </Alert>
             ) : null}
 
             <button
               className={buttonVariants({ size: "lg" })}
-              disabled={bookingMutation.isPending || !slot.isAvailable}
+              disabled={reservationMutation.isPending || !slot.isAvailable}
               type="submit"
             >
-              {bookingMutation.isPending ? "Confirming..." : "Confirm booking"}
+              {reservationMutation.isPending
+                ? "Confirming..."
+                : "Confirm reservation"}
             </button>
           </form>
         </CardContent>

@@ -1,40 +1,43 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 
 import {
-  fetchReviews,
-  fetchStayById,
-  fetchStays,
+  fetchBookingCards,
+  fetchBookingDetails,
+  fetchBookingReviews,
 } from "@/features/stays/api-client"
-import type { StaySearchParams } from "@/features/stays/schemas"
+import type { BookingSearchParams } from "@/features/stays/schemas"
 
-export const stayKeys = {
-  all: ["stays"] as const,
-  lists: () => [...stayKeys.all, "list"] as const,
-  list: (filters: StaySearchParams) => [...stayKeys.lists(), filters] as const,
-  detail: (stayId: string) => [...stayKeys.all, "detail", stayId] as const,
-  reviews: (stayId: string) => [...stayKeys.detail(stayId), "reviews"] as const,
+export const bookingKeys = {
+  all: ["bookings"] as const,
+  lists: () => [...bookingKeys.all, "list"] as const,
+  list: (filters: BookingSearchParams) =>
+    [...bookingKeys.lists(), filters] as const,
+  detail: (bookingId: string) =>
+    [...bookingKeys.all, "detail", bookingId] as const,
+  reviews: (bookingId: string) =>
+    [...bookingKeys.detail(bookingId), "reviews"] as const,
 }
 
-export function stayListQueryOptions(filters: StaySearchParams) {
+export function bookingCardsQueryOptions(filters: BookingSearchParams) {
   return queryOptions({
-    queryKey: stayKeys.list(filters),
-    queryFn: () => fetchStays(filters),
+    queryKey: bookingKeys.list(filters),
+    queryFn: () => fetchBookingCards(filters),
     placeholderData: keepPreviousData,
   })
 }
 
-export function stayDetailQueryOptions(stayId: string) {
+export function bookingDetailsQueryOptions(bookingId: string) {
   return queryOptions({
-    queryKey: stayKeys.detail(stayId),
-    queryFn: () => fetchStayById(stayId),
-    enabled: stayId.length > 0,
+    queryKey: bookingKeys.detail(bookingId),
+    queryFn: () => fetchBookingDetails(bookingId),
+    enabled: bookingId.length > 0,
   })
 }
 
-export function stayReviewsQueryOptions(stayId: string) {
+export function bookingReviewsQueryOptions(bookingId: string) {
   return queryOptions({
-    queryKey: stayKeys.reviews(stayId),
-    queryFn: () => fetchReviews(stayId),
-    enabled: stayId.length > 0,
+    queryKey: bookingKeys.reviews(bookingId),
+    queryFn: () => fetchBookingReviews(bookingId),
+    enabled: bookingId.length > 0,
   })
 }

@@ -17,9 +17,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { postReview } from "@/features/stays/api-client"
 import {
-  stayDetailQueryOptions,
-  stayKeys,
-  stayReviewsQueryOptions,
+  bookingDetailsQueryOptions,
+  bookingKeys,
+  bookingReviewsQueryOptions,
 } from "@/features/stays/query-options"
 import { reviewInputSchema } from "@/features/stays/schemas"
 import {
@@ -31,39 +31,41 @@ import { cn } from "@/lib/utils"
 
 export function StayPage() {
   const params = useParams()
-  const stayId = params.stayId ?? ""
+  const bookingId = params.bookingId ?? ""
   const queryClient = useQueryClient()
   const [formError, setFormError] = useState<string | null>(null)
-  const stayQuery = useQuery(stayDetailQueryOptions(stayId))
-  const reviewsQuery = useQuery(stayReviewsQueryOptions(stayId))
+  const bookingQuery = useQuery(bookingDetailsQueryOptions(bookingId))
+  const reviewsQuery = useQuery(bookingReviewsQueryOptions(bookingId))
 
   const reviewMutation = useMutation({
     mutationFn: (input: unknown) =>
-      postReview(stayId, reviewInputSchema.parse(input)),
+      postReview(bookingId, reviewInputSchema.parse(input)),
     onSuccess: () => {
       setFormError(null)
-      void queryClient.invalidateQueries({ queryKey: stayKeys.detail(stayId) })
-      void queryClient.invalidateQueries({ queryKey: stayKeys.reviews(stayId) })
-      void queryClient.invalidateQueries({ queryKey: stayKeys.lists() })
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.detail(bookingId) })
+      void queryClient.invalidateQueries({
+        queryKey: bookingKeys.reviews(bookingId),
+      })
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.lists() })
     },
   })
 
-  if (stayQuery.isPending) {
+  if (bookingQuery.isPending) {
     return <Skeleton className="h-[32rem] rounded-[28px]" />
   }
 
-  if (stayQuery.isError || !stayQuery.data) {
+  if (bookingQuery.isError || !bookingQuery.data) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>Stay not found</AlertTitle>
+        <AlertTitle>Booking not found</AlertTitle>
         <AlertDescription>
-          The details endpoint did not return a stay for this id.
+          The details endpoint did not return a booking for this id.
         </AlertDescription>
       </Alert>
     )
   }
 
-  const stay = stayQuery.data
+  const booking = bookingQuery.data
 
   return (
     <div className="space-y-8">
@@ -74,27 +76,40 @@ export function StayPage() {
               buttonVariants({ size: "sm", variant: "ghost" }),
               "w-fit px-0 text-muted-foreground"
             )}
-            to="/"
+            to="/feed"
           >
-            Back to stays
+            Back to bookings
           </Link>
-          <div
-            aria-hidden="true"
-            className="relative aspect-[16/10] overflow-hidden rounded-[28px] border border-border/60"
-            style={{ backgroundImage: stay.visual.gradient }}
-          >
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.55))]" />
-            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-6 text-white">
-              <p className="text-[0.72rem] font-black uppercase tracking-[0.42em] text-white/75">
-                {stay.visual.eyebrow}
-              </p>
-              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
-                {stay.name}
-              </h1>
-              <p className="max-w-2xl text-sm text-white/80 sm:text-base">
-                {stay.tagline}
-              </p>
+          <div className="grid gap-3">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-[28px] border border-border/60">
+              <img
+                alt={booking.images[0]?.alt ?? booking.image.alt}
+                className="h-full w-full object-cover"
+                src={booking.images[0]?.src ?? booking.image.src}
+              />
             </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {booking.images.slice(1).map((image) => (
+                <div
+                  className="aspect-[4/3] overflow-hidden rounded-[24px] border border-border/60"
+                  key={image.src}
+                >
+                  <img
+                    alt={image.alt}
+                    className="h-full w-full object-cover"
+                    src={image.src}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+              {booking.name}
+            </h1>
+            <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
+              {booking.description}
+            </p>
           </div>
           <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-4">
@@ -103,35 +118,39 @@ export function StayPage() {
                   Overview
                 </p>
                 <p className="mt-3 text-base leading-7 text-muted-foreground">
-                  {stay.description}
+                  {booking.description}
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Card className="border border-border/70 bg-muted/35 py-0">
                   <CardHeader>
-                    <CardTitle>Remote-work perks</CardTitle>
+                    <CardTitle>Amenities</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2 pb-4">
-                    {stay.remoteWorkPerks.map((perk) => (
-                      <p className="text-sm text-muted-foreground" key={perk}>
-                        {perk}
-                      </p>
+                  <CardContent className="flex flex-wrap gap-2 pb-4">
+                    {booking.amenities.map((amenity) => (
+                      <span
+                        className="rounded-full border border-border/70 bg-background/80 px-3 py-1.5 text-sm text-muted-foreground"
+                        key={amenity}
+                      >
+                        {amenity}
+                      </span>
                     ))}
                   </CardContent>
                 </Card>
                 <Card className="border border-border/70 bg-muted/35 py-0">
                   <CardHeader>
-                    <CardTitle>Stay notes</CardTitle>
+                    <CardTitle>Booking notes</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 pb-4">
                     <p className="text-sm text-muted-foreground">
-                      Host type: {stay.hostType}
+                      Host type: {booking.hostType}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {stay.cancellationPolicy}
+                      {booking.cancellationPolicy}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {stay.rating.toFixed(1)} rating across {stay.reviewCount} reviews
+                      {booking.rating.toFixed(1)} rating across {booking.reviewCount}{" "}
+                      reviews
                     </p>
                   </CardContent>
                 </Card>
@@ -141,7 +160,7 @@ export function StayPage() {
                   Workspace highlights
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {stay.workspaceHighlights.map((item) => (
+                  {booking.workspaceHighlights.map((item) => (
                     <span
                       className="rounded-full border border-border/70 bg-background/80 px-3 py-1.5 text-sm"
                       key={item}
@@ -161,7 +180,7 @@ export function StayPage() {
                 </p>
               </CardHeader>
               <CardContent className="space-y-4 pb-4">
-                {stay.availabilitySlots.map((slot) => (
+                {booking.availabilitySlots.map((slot) => (
                   <div
                     className="rounded-[20px] border border-border/70 bg-muted/25 p-4"
                     key={slot.id}
@@ -187,9 +206,9 @@ export function StayPage() {
                             size: "sm",
                             variant: slot.isAvailable ? "default" : "outline",
                           })}
-                          to={`/checkout?stayId=${stay.id}&slotId=${slot.id}`}
+                          to={`/checkout?bookingId=${booking.id}&slotId=${slot.id}`}
                         >
-                          {slot.isAvailable ? "Reserve this stay" : "Sold out"}
+                          {slot.isAvailable ? "Reserve this booking" : "Sold out"}
                         </Link>
                       </div>
                     </div>
@@ -254,7 +273,9 @@ export function StayPage() {
                   })
 
                   if (!parsedInput.success) {
-                    setFormError(parsedInput.error.issues[0]?.message ?? "Invalid review.")
+                    setFormError(
+                      parsedInput.error.issues[0]?.message ?? "Invalid review."
+                    )
                     return
                   }
 

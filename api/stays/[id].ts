@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
 
 import { sendJson, sendRouteError } from "../_lib/response"
-import { getStayById } from "@/features/stays/mock-store"
+import { getBookingById } from "@/features/stays/mock-store"
 
 function getStayId(request: VercelRequest) {
   const rawId = request.query.id
@@ -15,13 +15,13 @@ export default function handler(request: VercelRequest, response: VercelResponse
   }
 
   try {
-    const stayId = getStayId(request)
-    if (!stayId) {
-      sendJson(response, 400, { message: "Stay id is required." })
+    const bookingId = getStayId(request)
+    if (!bookingId) {
+      sendJson(response, 400, { message: "Booking id is required." })
       return
     }
 
-    sendJson(response, 200, getStayById(stayId))
+    sendJson(response, 200, getBookingById(bookingId))
   } catch (error) {
     sendRouteError(response, error)
   }

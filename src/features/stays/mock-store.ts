@@ -1,19 +1,19 @@
 import {
-  bookingConfirmationSchema,
+  bookingCardsResponseSchema,
+  bookingDetailsSchema,
+  reservationSchema,
   reviewSchema,
   reviewsResponseSchema,
-  stayDetailSchema,
-  staysResponseSchema,
-  type BookingConfirmation,
-  type BookingInput,
+  type BookingCard,
+  type BookingDetails,
+  type BookingSearchParams,
+  type Reservation,
+  type ReservationInput,
   type Review,
   type ReviewInput,
-  type StayDetail,
-  type StaySearchParams,
-  type StaySummary,
 } from "@/features/stays/schemas"
 
-type StayRecord = Omit<StayDetail, "rating" | "reviewCount"> & {
+type BookingRecord = Omit<BookingDetails, "rating" | "reviewCount"> & {
   reviews: Review[]
 }
 
@@ -21,27 +21,49 @@ function isoDate(day: string) {
   return `${day}T15:00:00.000Z`
 }
 
-const stayRecords: StayRecord[] = [
+const bookingRecords: BookingRecord[] = [
   {
-    id: "stay_lisbon-loft",
+    id: "booking_lisbon-loft",
     slug: "lisbon-loft-house",
     name: "Lisbon Loft House",
     location: {
       city: "Lisbon",
       country: "Portugal",
     },
-    tagline: "Sunlit loft suites two streets away from a calm neighborhood cafe.",
-    nightlyRate: 164,
-    tags: ["City pulse", "Quiet nights", "Walkable"],
-    remoteWorkPerks: ["500 Mbps Wi-Fi", "Monitor on request", "Coffee bar"],
-    availabilityLabel: "Next opening: Mar 28",
-    visual: {
-      gradient:
-        "linear-gradient(135deg, rgba(27,103,170,0.95), rgba(148,201,255,0.72) 48%, rgba(255,225,171,0.92))",
-      eyebrow: "Atlantic focus",
-    },
     description:
-      "A compact but polished stay designed for people who split their day between focused work blocks and long neighborhood walks. Every room includes a desk setup, acoustic curtains, and easy access to coworking add-ons.",
+      "Sunlit loft suites with reliable workstations, warm design, and easy access to a calm neighborhood cafe.",
+    nightlyRate: 164,
+    amenities: [
+      "Fast Wi-Fi",
+      "Dedicated desk",
+      "Monitor",
+      "Ergonomic chair",
+      "Self check-in",
+      "Coffee station",
+      "Air conditioning",
+      "Kitchen",
+      "Laundry machine",
+      "Quiet hours",
+    ],
+    availabilityLabel: "Next opening: Mar 28",
+    image: {
+      src: "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80",
+      alt: "Warm Lisbon loft living room with desk and natural light.",
+    },
+    images: [
+      {
+        src: "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80",
+        alt: "Warm Lisbon loft living room with desk and natural light.",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+        alt: "Minimal bedroom with soft tones and boutique styling.",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80",
+        alt: "Kitchen and dining nook inside a modern apartment stay.",
+      },
+    ],
     hostType: "Boutique apartment hotel",
     cancellationPolicy: "Free cancellation up to 48 hours before check-in.",
     workspaceHighlights: [
@@ -72,7 +94,7 @@ const stayRecords: StayRecord[] = [
     reviews: [
       {
         id: "review_lisbon_1",
-        stayId: "stay_lisbon-loft",
+        bookingId: "booking_lisbon-loft",
         author: "Maya",
         rating: 5,
         comment:
@@ -81,7 +103,7 @@ const stayRecords: StayRecord[] = [
       },
       {
         id: "review_lisbon_2",
-        stayId: "stay_lisbon-loft",
+        bookingId: "booking_lisbon-loft",
         author: "Jon",
         rating: 4,
         comment:
@@ -91,26 +113,47 @@ const stayRecords: StayRecord[] = [
     ],
   },
   {
-    id: "stay_medellin-sky",
+    id: "booking_medellin-sky",
     slug: "medellin-sky-residence",
     name: "Medellin Sky Residence",
     location: {
       city: "Medellin",
       country: "Colombia",
     },
-    tagline:
-      "A hillside residence with cool evenings, standing desks, and late check-out.",
-    nightlyRate: 138,
-    tags: ["Mountain air", "Team friendly", "Extended stays"],
-    remoteWorkPerks: ["Standing desk", "4K monitor", "Sound-treated calls booth"],
-    availabilityLabel: "Next opening: Mar 30",
-    visual: {
-      gradient:
-        "linear-gradient(135deg, rgba(20,76,115,0.96), rgba(115,205,186,0.75) 45%, rgba(255,234,195,0.88))",
-      eyebrow: "Cloudline calm",
-    },
     description:
-      "Built for longer stays, this property mixes apartment privacy with hotel-grade service. Guests can book wellness mornings, shared dinners, and same-day monitor delivery without leaving the app.",
+      "A hillside residence built for longer work trips, with flexible layouts, calmer evenings, and polished extended-stay comforts.",
+    nightlyRate: 138,
+    amenities: [
+      "Fast Wi-Fi",
+      "Standing desk",
+      "Monitor",
+      "Phone booth",
+      "Ergonomic chair",
+      "Late check-out",
+      "Gym access",
+      "Breakfast included",
+      "Laundry machine",
+      "Air conditioning",
+    ],
+    availabilityLabel: "Next opening: Mar 30",
+    image: {
+      src: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+      alt: "Bright bedroom and lounge in a serviced residence.",
+    },
+    images: [
+      {
+        src: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+        alt: "Bright bedroom and lounge in a serviced residence.",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+        alt: "Modern suite interior with layered textures.",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+        alt: "Open-plan lounge with mountain-city atmosphere.",
+      },
+    ],
     hostType: "Serviced residence",
     cancellationPolicy: "Free cancellation up to 72 hours before check-in.",
     workspaceHighlights: [
@@ -141,7 +184,7 @@ const stayRecords: StayRecord[] = [
     reviews: [
       {
         id: "review_medellin_1",
-        stayId: "stay_medellin-sky",
+        bookingId: "booking_medellin-sky",
         author: "Tara",
         rating: 5,
         comment:
@@ -151,26 +194,46 @@ const stayRecords: StayRecord[] = [
     ],
   },
   {
-    id: "stay_tbilisi-courtyard",
+    id: "booking_tbilisi-courtyard",
     slug: "tbilisi-courtyard-studios",
     name: "Tbilisi Courtyard Studios",
     location: {
       city: "Tbilisi",
       country: "Georgia",
     },
-    tagline:
-      "Editorial-style studios built around a courtyard lounge and all-day tea room.",
-    nightlyRate: 119,
-    tags: ["Design-led", "Budget smart", "Courtyard social"],
-    remoteWorkPerks: ["Fast mesh Wi-Fi", "Tea lounge", "Printer access"],
-    availabilityLabel: "Next opening: Apr 1",
-    visual: {
-      gradient:
-        "linear-gradient(135deg, rgba(89,55,136,0.94), rgba(242,181,166,0.82) 52%, rgba(255,240,222,0.92))",
-      eyebrow: "Courtyard rhythm",
-    },
     description:
-      "For travelers who want character without sacrificing reliability, these studios pair warm interiors with practical work amenities. The courtyard becomes a social workspace in the afternoons and a quiet reading space by evening.",
+      "Editorial-style studios centered around a courtyard lounge, calm work rhythms, and a softer budget without losing useful amenities.",
+    nightlyRate: 119,
+    amenities: [
+      "Fast Wi-Fi",
+      "Dedicated desk",
+      "Self check-in",
+      "Coffee station",
+      "Kitchen",
+      "Laundry machine",
+      "Quiet hours",
+      "Late check-out",
+      "Air conditioning",
+    ],
+    availabilityLabel: "Next opening: Apr 1",
+    image: {
+      src: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80",
+      alt: "Design-led studio kitchen and lounge with warm textures.",
+    },
+    images: [
+      {
+        src: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80",
+        alt: "Design-led studio kitchen and lounge with warm textures.",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+        alt: "Private room with refined, calm styling.",
+      },
+      {
+        src: "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80",
+        alt: "Shared courtyard space arranged for quiet work and tea.",
+      },
+    ],
     hostType: "Design hostel-private suites",
     cancellationPolicy: "Free cancellation up to 24 hours before check-in.",
     workspaceHighlights: [
@@ -201,7 +264,7 @@ const stayRecords: StayRecord[] = [
     reviews: [
       {
         id: "review_tbilisi_1",
-        stayId: "stay_tbilisi-courtyard",
+        bookingId: "booking_tbilisi-courtyard",
         author: "Rina",
         rating: 4,
         comment:
@@ -210,7 +273,7 @@ const stayRecords: StayRecord[] = [
       },
       {
         id: "review_tbilisi_2",
-        stayId: "stay_tbilisi-courtyard",
+        bookingId: "booking_tbilisi-courtyard",
         author: "Ben",
         rating: 5,
         comment:
@@ -221,7 +284,7 @@ const stayRecords: StayRecord[] = [
   },
 ]
 
-const bookings: BookingConfirmation[] = []
+const reservations: Reservation[] = []
 
 export class StoreError extends Error {
   status: number
@@ -233,20 +296,20 @@ export class StoreError extends Error {
   }
 }
 
-function getReviewsForStay(stayId: string) {
-  const stay = stayRecords.find((record) => record.id === stayId)
+function getReviewsForBooking(bookingId: string) {
+  const booking = bookingRecords.find((record) => record.id === bookingId)
 
-  if (!stay) {
-    throw new StoreError("Stay not found.", 404)
+  if (!booking) {
+    throw new StoreError("Booking not found.", 404)
   }
 
-  return [...stay.reviews].sort((left, right) =>
+  return [...booking.reviews].sort((left, right) =>
     right.createdAt.localeCompare(left.createdAt)
   )
 }
 
-function getRatingMeta(stayId: string) {
-  const reviews = getReviewsForStay(stayId)
+function getRatingMeta(bookingId: string) {
+  const reviews = getReviewsForBooking(bookingId)
   const reviewCount = reviews.length
   const totalRating = reviews.reduce(
     (sum: number, review: Review) => sum + review.rating,
@@ -262,38 +325,37 @@ function getRatingMeta(stayId: string) {
   }
 }
 
-function toSummary(record: StayRecord): StaySummary {
+function toBookingCard(record: BookingRecord): BookingCard {
   return {
     id: record.id,
     slug: record.slug,
     name: record.name,
     location: record.location,
-    tagline: record.tagline,
+    description: record.description,
     nightlyRate: record.nightlyRate,
-    tags: record.tags,
-    remoteWorkPerks: record.remoteWorkPerks,
+    amenities: record.amenities,
     availabilityLabel: record.availabilityLabel,
-    visual: record.visual,
+    image: record.image,
     ...getRatingMeta(record.id),
   }
 }
 
-function toDetail(record: StayRecord): StayDetail {
-  return stayDetailSchema.parse({
-    ...toSummary(record),
-    description: record.description,
+function toBookingDetails(record: BookingRecord): BookingDetails {
+  return bookingDetailsSchema.parse({
+    ...toBookingCard(record),
     hostType: record.hostType,
     cancellationPolicy: record.cancellationPolicy,
     workspaceHighlights: record.workspaceHighlights,
+    images: record.images,
     availabilitySlots: record.availabilitySlots,
   })
 }
 
-export function listStays(filters: StaySearchParams) {
+export function listBookingCards(filters: BookingSearchParams) {
   const normalizedQuery = filters.query?.toLocaleLowerCase()
   const normalizedCity = filters.city?.toLocaleLowerCase()
 
-  let filtered = stayRecords.filter((record) => {
+  let filtered = bookingRecords.filter((record) => {
     if (
       normalizedCity &&
       record.location.city.toLocaleLowerCase() !== normalizedCity
@@ -309,9 +371,8 @@ export function listStays(filters: StaySearchParams) {
       record.name,
       record.location.city,
       record.location.country,
-      record.tagline,
-      ...record.tags,
-      ...record.remoteWorkPerks,
+      record.description,
+      ...record.amenities,
     ]
       .join(" ")
       .toLocaleLowerCase()
@@ -336,59 +397,61 @@ export function listStays(filters: StaySearchParams) {
     return rightScore - leftScore
   })
 
-  return staysResponseSchema.parse({
-    stays: filtered.map(toSummary),
+  return bookingCardsResponseSchema.parse({
+    bookings: filtered.map(toBookingCard),
     availableCities: Array.from(
-      new Set(stayRecords.map((record) => record.location.city))
+      new Set(bookingRecords.map((record) => record.location.city))
     ).sort((left, right) => left.localeCompare(right)),
     total: filtered.length,
   })
 }
 
-export function getStayById(stayId: string) {
-  const stay = stayRecords.find((record) => record.id === stayId)
+export function getBookingById(bookingId: string) {
+  const booking = bookingRecords.find((record) => record.id === bookingId)
 
-  if (!stay) {
-    throw new StoreError("Stay not found.", 404)
+  if (!booking) {
+    throw new StoreError("Booking not found.", 404)
   }
 
-  return toDetail(stay)
+  return toBookingDetails(booking)
 }
 
-export function getReviewsByStayId(stayId: string) {
+export function getReviewsByBookingId(bookingId: string) {
   return reviewsResponseSchema.parse({
-    reviews: getReviewsForStay(stayId),
+    reviews: getReviewsForBooking(bookingId),
   })
 }
 
-export function addReview(stayId: string, input: ReviewInput) {
-  const stay = stayRecords.find((record) => record.id === stayId)
+export function addReview(bookingId: string, input: ReviewInput) {
+  const booking = bookingRecords.find((record) => record.id === bookingId)
 
-  if (!stay) {
-    throw new StoreError("Stay not found.", 404)
+  if (!booking) {
+    throw new StoreError("Booking not found.", 404)
   }
 
   const review = reviewSchema.parse({
-    id: `review_${stay.reviews.length + 1}_${Date.now()}`,
-    stayId,
+    id: `review_${booking.reviews.length + 1}_${Date.now()}`,
+    bookingId,
     author: input.author,
     rating: input.rating,
     comment: input.comment,
     createdAt: new Date().toISOString(),
   })
 
-  stay.reviews.unshift(review)
+  booking.reviews.unshift(review)
   return review
 }
 
-export function createBooking(input: BookingInput) {
-  const stay = stayRecords.find((record) => record.id === input.stayId)
+export function createReservation(input: ReservationInput) {
+  const booking = bookingRecords.find((record) => record.id === input.bookingId)
 
-  if (!stay) {
-    throw new StoreError("Stay not found.", 404)
+  if (!booking) {
+    throw new StoreError("Booking not found.", 404)
   }
 
-  const slot = stay.availabilitySlots.find((candidate) => candidate.id === input.slotId)
+  const slot = booking.availabilitySlots.find(
+    (candidate) => candidate.id === input.slotId
+  )
 
   if (!slot) {
     throw new StoreError("Availability slot not found.", 404)
@@ -401,18 +464,18 @@ export function createBooking(input: BookingInput) {
   slot.remainingUnits -= 1
   slot.isAvailable = slot.remainingUnits > 0
 
-  const confirmation = bookingConfirmationSchema.parse({
-    id: `booking_${bookings.length + 1}`,
-    stayId: stay.id,
-    stayName: stay.name,
+  const reservation = reservationSchema.parse({
+    id: `reservation_${reservations.length + 1}`,
+    bookingId: booking.id,
+    bookingName: booking.name,
     slotLabel: slot.label,
-    location: stay.location,
+    location: booking.location,
     totalPrice: slot.totalPrice,
     guestName: input.guestName,
     email: input.email,
     confirmedAt: new Date().toISOString(),
   })
 
-  bookings.unshift(confirmation)
-  return confirmation
+  reservations.unshift(reservation)
+  return reservation
 }

@@ -1,22 +1,22 @@
 import { fetchJson } from "@/lib/fetch-json"
 
 import {
-  bookingConfirmationSchema,
-  bookingInputSchema,
+  bookingCardsResponseSchema,
+  bookingDetailsSchema,
+  bookingSearchParamsSchema,
   checkoutSearchParamsSchema,
+  reservationInputSchema,
+  reservationSchema,
   reviewInputSchema,
   reviewSchema,
   reviewsResponseSchema,
-  stayDetailSchema,
-  staySearchParamsSchema,
-  staysResponseSchema,
-  type BookingInput,
+  type BookingSearchParams,
   type CheckoutSearchParams,
+  type ReservationInput,
   type ReviewInput,
-  type StaySearchParams,
 } from "@/features/stays/schemas"
 
-function buildSearchString(params: StaySearchParams) {
+function buildSearchString(params: BookingSearchParams) {
   const searchParams = new URLSearchParams()
 
   if (params.query) {
@@ -34,8 +34,8 @@ function buildSearchString(params: StaySearchParams) {
   return searchParams.toString()
 }
 
-export function parseStaySearchParams(searchParams: URLSearchParams) {
-  return staySearchParamsSchema.parse({
+export function parseBookingSearchParams(searchParams: URLSearchParams) {
+  return bookingSearchParamsSchema.parse({
     query: searchParams.get("query") ?? undefined,
     city: searchParams.get("city") ?? undefined,
     sort: searchParams.get("sort") ?? undefined,
@@ -44,46 +44,46 @@ export function parseStaySearchParams(searchParams: URLSearchParams) {
 
 export function parseCheckoutSearchParams(searchParams: URLSearchParams) {
   return checkoutSearchParamsSchema.safeParse({
-    stayId: searchParams.get("stayId") ?? undefined,
+    bookingId: searchParams.get("bookingId") ?? undefined,
     slotId: searchParams.get("slotId") ?? undefined,
   })
 }
 
-export function createStaySearchString(params: StaySearchParams) {
-  const normalized = staySearchParamsSchema.parse(params)
+export function createBookingSearchString(params: BookingSearchParams) {
+  const normalized = bookingSearchParamsSchema.parse(params)
   const searchString = buildSearchString(normalized)
   return searchString.length > 0 ? `?${searchString}` : ""
 }
 
-export async function fetchStays(params: StaySearchParams) {
-  const normalized = staySearchParamsSchema.parse(params)
+export async function fetchBookingCards(params: BookingSearchParams) {
+  const normalized = bookingSearchParamsSchema.parse(params)
   const searchString = buildSearchString(normalized)
 
   return fetchJson(
     searchString.length > 0 ? `/api/stays?${searchString}` : "/api/stays",
-    staysResponseSchema
+    bookingCardsResponseSchema
   )
 }
 
-export async function fetchStayById(stayId: string) {
-  return fetchJson(`/api/stays/${stayId}`, stayDetailSchema)
+export async function fetchBookingDetails(bookingId: string) {
+  return fetchJson(`/api/stays/${bookingId}`, bookingDetailsSchema)
 }
 
-export async function fetchReviews(stayId: string) {
-  return fetchJson(`/api/stays/${stayId}/reviews`, reviewsResponseSchema)
+export async function fetchBookingReviews(bookingId: string) {
+  return fetchJson(`/api/stays/${bookingId}/reviews`, reviewsResponseSchema)
 }
 
-export async function postReview(stayId: string, input: ReviewInput) {
+export async function postReview(bookingId: string, input: ReviewInput) {
   const parsedInput = reviewInputSchema.parse(input)
-  return fetchJson(`/api/stays/${stayId}/reviews`, reviewSchema, {
+  return fetchJson(`/api/stays/${bookingId}/reviews`, reviewSchema, {
     method: "POST",
     body: JSON.stringify(parsedInput),
   })
 }
 
-export async function postBooking(input: BookingInput) {
-  const parsedInput = bookingInputSchema.parse(input)
-  return fetchJson("/api/bookings", bookingConfirmationSchema, {
+export async function postReservation(input: ReservationInput) {
+  const parsedInput = reservationInputSchema.parse(input)
+  return fetchJson("/api/bookings", reservationSchema, {
     method: "POST",
     body: JSON.stringify(parsedInput),
   })
@@ -91,7 +91,7 @@ export async function postBooking(input: BookingInput) {
 
 export function assertCheckoutSearchParams(searchParams: URLSearchParams) {
   return checkoutSearchParamsSchema.parse({
-    stayId: searchParams.get("stayId") ?? undefined,
+    bookingId: searchParams.get("bookingId") ?? undefined,
     slotId: searchParams.get("slotId") ?? undefined,
   }) satisfies CheckoutSearchParams
 }

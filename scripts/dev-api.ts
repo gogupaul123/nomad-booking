@@ -3,16 +3,16 @@ import { ZodError } from "zod"
 
 import {
   addReview,
-  createBooking,
-  getReviewsByStayId,
-  getStayById,
-  listStays,
+  createReservation,
+  getBookingById,
+  getReviewsByBookingId,
+  listBookingCards,
   StoreError,
 } from "../src/features/stays/mock-store.ts"
 import {
-  bookingInputSchema,
+  bookingSearchParamsSchema,
+  reservationInputSchema,
   reviewInputSchema,
-  staySearchParamsSchema,
 } from "../src/features/stays/schemas.ts"
 
 const port = Number(process.env.PORT ?? 3001)
@@ -74,54 +74,58 @@ const server = createServer(async (request, response) => {
 
   try {
     if (method === "GET" && pathname === "/api/stays") {
-      const filters = staySearchParamsSchema.parse({
+      const filters = bookingSearchParamsSchema.parse({
         query: url.searchParams.get("query") ?? undefined,
         city: url.searchParams.get("city") ?? undefined,
         sort: url.searchParams.get("sort") ?? undefined,
       })
 
-      sendJson(response, 200, listStays(filters))
+      sendJson(response, 200, listBookingCards(filters))
       return
     }
 
-    const stayDetailsMatch = pathname.match(/^\/api\/stays\/([^/]+)$/)
-    if (method === "GET" && stayDetailsMatch) {
-      sendJson(response, 200, getStayById(decodeURIComponent(stayDetailsMatch[1]!)))
-      return
-    }
-
-    const stayReviewsMatch = pathname.match(/^\/api\/stays\/([^/]+)\/reviews$/)
-    if (stayReviewsMatch && method === "GET") {
+    const bookingDetailsMatch = pathname.match(/^\/api\/stays\/([^/]+)$/)
+    if (method === "GET" && bookingDetailsMatch) {
       sendJson(
         response,
         200,
-        getReviewsByStayId(decodeURIComponent(stayReviewsMatch[1]!))
+        getBookingById(decodeURIComponent(bookingDetailsMatch[1]!))
       )
       return
     }
 
-    if (stayReviewsMatch && method === "POST") {
-      const stayId = decodeURIComponent(stayReviewsMatch[1]!)
+    const bookingReviewsMatch = pathname.match(/^\/api\/stays\/([^/]+)\/reviews$/)
+    if (bookingReviewsMatch && method === "GET") {
+      sendJson(
+        response,
+        200,
+        getReviewsByBookingId(decodeURIComponent(bookingReviewsMatch[1]!))
+      )
+      return
+    }
+
+    if (bookingReviewsMatch && method === "POST") {
+      const bookingId = decodeURIComponent(bookingReviewsMatch[1]!)
       const review = addReview(
-        stayId,
+        bookingId,
         reviewInputSchema.parse(await readJsonBody(request))
       )
 
-      console.info("review_created", { stayId, reviewId: review.id })
+      console.info("review_created", { bookingId, reviewId: review.id })
       sendJson(response, 200, review)
       return
     }
 
     if (pathname === "/api/bookings" && method === "POST") {
-      const booking = createBooking(
-        bookingInputSchema.parse(await readJsonBody(request))
+      const reservation = createReservation(
+        reservationInputSchema.parse(await readJsonBody(request))
       )
 
-      console.info("booking_created", {
-        bookingId: booking.id,
-        stayId: booking.stayId,
+      console.info("reservation_created", {
+        reservationId: reservation.id,
+        bookingId: reservation.bookingId,
       })
-      sendJson(response, 200, booking)
+      sendJson(response, 200, reservation)
       return
     }
 

@@ -13,7 +13,7 @@ export function NotFoundPage() {
         <p className="text-sm text-muted-foreground">
           The route does not exist in this challenge app.
         </p>
-        <Link className={buttonVariants()} to="/">
+        <Link className={buttonVariants()} to="/feed">
           Back to home
         </Link>
       </CardContent>

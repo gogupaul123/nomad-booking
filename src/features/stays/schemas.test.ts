@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  bookingSearchParamsSchema,
   reviewInputSchema,
-  staySearchParamsSchema,
 } from "@/features/stays/schemas"
 
-describe("staySearchParamsSchema", () => {
+describe("bookingSearchParamsSchema", () => {
   it("normalizes empty values into defaults", () => {
     expect(
-      staySearchParamsSchema.parse({
+      bookingSearchParamsSchema.parse({
         query: "   ",
         city: "",
         sort: undefined,
