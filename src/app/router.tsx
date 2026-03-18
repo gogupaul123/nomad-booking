@@ -26,7 +26,7 @@ export const router = createBrowserRouter([
         element: <FavouritesPage />,
       },
       {
-        path: "bookings/:bookingId",
+        path: "stays/:stayId",
         element: <StayPage />,
       },
       {

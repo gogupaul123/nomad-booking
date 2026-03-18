@@ -51,8 +51,8 @@ bun run dev:web
 
 ## Architecture Notes
 
-- `src/features/stays/schemas.ts` holds shared Zod schemas and types.
-- `src/features/stays/mock-store.ts` is the mock domain store used by the Vercel Functions.
+- `src/features/stays/schemas.ts` holds shared Zod schemas for stays plus booking-confirmation types for checkout.
+- `src/features/stays/mock-store.ts` is the mock stay domain store used by the Vercel Functions.
 - `api/` contains the backend surface required by the challenge:
   - `GET /api/stays`
   - `GET /api/stays/:id`
@@ -60,13 +60,13 @@ bun run dev:web
   - `POST /api/stays/:id/reviews`
   - `POST /api/bookings`
 - `scripts/dev-api.ts` mirrors the same API contract locally so the repo runs with Bun only and without Vercel login friction.
-- `src/features/stays/query-options.ts` co-locates TanStack Query keys and query options.
+- `src/features/stays/query-options.ts` co-locates TanStack Query keys and stay query options.
 - The checkout flow ends in a confirmation screen rather than a persistent account area to stay inside the recruiter challenge scope.
 
 ## Tradeoffs
 
-- Data is mocked and stored in memory, so bookings and newly added reviews are not durable across reloads or cold starts.
-- The app prioritizes recruiter-facing clarity over breadth: browse, details, reviews, availability, and checkout are covered without adding auth or a saved bookings dashboard.
+- Data is mocked and stored in memory, so stays, confirmed bookings, and newly added reviews are not durable across reloads or cold starts.
+- The app prioritizes recruiter-facing clarity over breadth: browse, stay details, reviews, availability, and checkout are covered without adding auth or a saved bookings dashboard.
 - React Router is used for client-side routing; direct deployment routing rules can be added once the GitHub repo rename and Vercel project settings are finalized.
 
 ## Testing

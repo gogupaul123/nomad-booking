@@ -6,7 +6,9 @@ import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 
-type AnimatedThemeTogglerProps = React.ComponentPropsWithoutRef<typeof Switch> & {
+type AnimatedThemeTogglerProps = React.ComponentPropsWithoutRef<
+  typeof Switch
+> & {
   duration?: number
 }
 
@@ -28,14 +30,14 @@ export const AnimatedThemeToggler = ({
       }
 
       const { top, left, width, height } = container.getBoundingClientRect()
-    const x = left + width / 2
-    const y = top + height / 2
-    const viewportWidth = window.visualViewport?.width ?? window.innerWidth
-    const viewportHeight = window.visualViewport?.height ?? window.innerHeight
-    const maxRadius = Math.hypot(
-      Math.max(x, viewportWidth - x),
-      Math.max(y, viewportHeight - y)
-    )
+      const x = left + width / 2
+      const y = top + height / 2
+      const viewportWidth = window.visualViewport?.width ?? window.innerWidth
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight
+      const maxRadius = Math.hypot(
+        Math.max(x, viewportWidth - x),
+        Math.max(y, viewportHeight - y)
+      )
 
       const applyTheme = () => {
         setTheme(nextChecked ? "dark" : "light")
@@ -76,7 +78,7 @@ export const AnimatedThemeToggler = ({
     <label
       ref={containerRef}
       className={cn(
-        "inline-flex cursor-pointer items-center gap-2 rounded-xl bg-muted/40 px-3 py-2 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.45)]",
+        "inline-flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.45)]",
         className
       )}
     >

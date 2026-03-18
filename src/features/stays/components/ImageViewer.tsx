@@ -126,9 +126,6 @@ export function WebImageViewer({
   useEffect(() => {
     if (!isOpen) return
 
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         closeViewer()
@@ -151,7 +148,6 @@ export function WebImageViewer({
     window.addEventListener("keydown", handleKeyDown as never)
 
     return () => {
-      document.body.style.overflow = previousOverflow
       window.removeEventListener("keydown", handleKeyDown as never)
     }
   }, [carouselApi, closeViewer, isOpen, viewerImages.length])

@@ -1,4 +1,4 @@
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 
 export function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-US", {
@@ -11,6 +11,17 @@ export function formatCurrency(amount: number) {
 export function formatSlotRange(checkIn: string, checkOut: string) {
   return `${format(new Date(checkIn), "MMM d")} - ${format(
     new Date(checkOut),
+    "MMM d"
+  )}`
+}
+
+export function formatStayDate(value: string, pattern = "MMM d, yyyy") {
+  return format(parseISO(value), pattern)
+}
+
+export function formatStayDateRange(checkIn: string, checkOut: string) {
+  return `${formatStayDate(checkIn, "MMM d")} - ${formatStayDate(
+    checkOut,
     "MMM d"
   )}`
 }

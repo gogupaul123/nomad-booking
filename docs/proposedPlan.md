@@ -58,7 +58,7 @@ Backend:
 - Vercel Functions in `api/`
 - `@vercel/node` request/response typing
 - shared contracts imported from the frontend feature layer
-- mocked in-memory store for seeded stays, reviews, and bookings
+- mocked in-memory store for seeded stays, reviews, and confirmed bookings
 
 Testing and delivery:
 

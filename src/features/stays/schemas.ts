@@ -16,26 +16,96 @@ function optionalTrimmedString(maxLength: number) {
   }, z.string().max(maxLength).optional())
 }
 
-export const bookingSearchParamsSchema = z.object({
+function optionalSearchNumber({
+  min,
+  max,
+}: {
+  min?: number
+  max?: number
+}) {
+  return z.preprocess((value) => {
+    const singleValue = firstValue(value)
+
+    if (
+      singleValue === undefined ||
+      singleValue === null ||
+      singleValue === ""
+    ) {
+      return undefined
+    }
+
+    if (typeof singleValue === "number") {
+      return singleValue
+    }
+
+    if (typeof singleValue !== "string") {
+      return singleValue
+    }
+
+    const normalizedValue = Number(singleValue)
+    return Number.isFinite(normalizedValue) ? normalizedValue : singleValue
+  }, z.number().min(min ?? Number.NEGATIVE_INFINITY).max(max ?? Number.POSITIVE_INFINITY).optional())
+}
+
+export const staySearchParamsSchema = z.object({
   query: optionalTrimmedString(80),
   city: optionalTrimmedString(60),
+  minPrice: optionalSearchNumber({ min: 0 }),
+  maxPrice: optionalSearchNumber({ min: 0 }),
+  minRating: optionalSearchNumber({ min: 0, max: 5 }),
+  maxRating: optionalSearchNumber({ min: 0, max: 5 }),
   sort: z.preprocess(
     firstValue,
-    z.enum(["recommended", "price-low", "rating"]).default("recommended")
+    z
+      .enum(["rating-high", "rating-low", "price-high", "price-low"])
+      .default("rating-high")
   ),
+}).superRefine((value, context) => {
+  if (
+    value.minPrice !== undefined &&
+    value.maxPrice !== undefined &&
+    value.minPrice > value.maxPrice
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Minimum price cannot be greater than maximum price.",
+      path: ["minPrice"],
+    })
+  }
+
+  if (
+    value.minRating !== undefined &&
+    value.maxRating !== undefined &&
+    value.minRating > value.maxRating
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Minimum rating cannot be greater than maximum rating.",
+      path: ["minRating"],
+    })
+  }
 })
 
 export const checkoutSearchParamsSchema = z.object({
-  bookingId: z.preprocess(firstValue, z.string().min(1)),
-  slotId: z.preprocess(firstValue, z.string().min(1)),
+  stayId: z.preprocess(firstValue, z.string().min(1)),
+  checkIn: z.preprocess(firstValue, z.iso.date()),
+  checkOut: z.preprocess(firstValue, z.iso.date()),
+}).superRefine((value, context) => {
+  if (value.checkIn >= value.checkOut) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Check-out must be after check-in.",
+      path: ["checkOut"],
+    })
+  }
 })
 
-export const bookingLocationSchema = z.object({
+export const stayLocationSchema = z.object({
   city: z.string().min(1),
   country: z.string().min(1),
 })
 
-export const bookingImageSchema = z.object({
+export const stayImageSchema = z.object({
   src: z.string().url(),
   alt: z.string().min(1),
 })
@@ -60,56 +130,78 @@ export const amenitySchema = z.enum([
   "Takeout",
 ])
 
-export const availabilitySlotSchema = z.object({
-  id: z.string().min(1),
-  label: z.string().min(1),
-  checkIn: z.iso.datetime(),
-  checkOut: z.iso.datetime(),
+export const feedCollectionSchema = z.enum([
+  "city-sprints",
+  "quiet-corners",
+  "design-led-stays",
+  "long-stay-routines",
+  "always-online",
+])
+
+export const stayBookingPolicySchema = z.object({
+  minNights: z.number().int().min(1).max(30),
+  cleaningFee: z.number().nonnegative(),
+  serviceFee: z.number().nonnegative(),
+})
+
+export const stayAvailabilityEntrySchema = z.object({
+  date: z.iso.date(),
+  nightlyPrice: z.number().positive(),
   remainingUnits: z.number().int().nonnegative(),
-  totalPrice: z.number().positive(),
   isAvailable: z.boolean(),
 })
 
-export const bookingCardSchema = z.object({
+export const stayCardSchema = z.object({
   id: z.string().min(1),
   slug: z.string().min(1),
   name: z.string().min(1),
-  location: bookingLocationSchema,
+  location: stayLocationSchema,
   description: z.string().min(1),
   nightlyRate: z.number().positive(),
   rating: z.number().min(0).max(5),
   reviewCount: z.number().int().nonnegative(),
   amenities: z.array(amenitySchema).min(1),
   availabilityLabel: z.string().min(1),
-  image: bookingImageSchema,
+  feedCollection: feedCollectionSchema,
+  image: stayImageSchema,
 })
 
-export const bookingDetailsSchema = bookingCardSchema.extend({
+export const stayDetailsSchema = stayCardSchema.extend({
   hostType: z.string().min(1),
   cancellationPolicy: z.string().min(1),
   workspaceHighlights: z.array(z.string().min(1)).min(1),
-  images: z.array(bookingImageSchema).min(1),
-  availabilitySlots: z.array(availabilitySlotSchema).min(1),
+  images: z.array(stayImageSchema).min(1),
+  bookingPolicy: stayBookingPolicySchema,
+  availabilityCalendar: z.array(stayAvailabilityEntrySchema).min(30),
 })
 
 export const reviewSchema = z.object({
   id: z.string().min(1),
-  bookingId: z.string().min(1),
-  author: z.string().min(1),
+  stayId: z.string().min(1),
+  name: z.string().min(1),
   rating: z.number().int().min(1).max(5),
   comment: z.string().min(1),
   createdAt: z.iso.datetime(),
 })
 
 export const reviewInputSchema = z.object({
-  author: z.string().trim().min(2).max(40),
+  name: z
+    .string()
+    .trim()
+    .min(2, "At least 2 characters.")
+    .max(40, "Keep the name under 40 characters."),
   rating: z.coerce.number().int().min(1).max(5),
-  comment: z.string().trim().min(20).max(280),
+  comment: z
+    .string()
+    .trim()
+    .min(20, "At least 20 characters.")
+    .max(280, "Keep the comment under 280 characters."),
 })
 
-export const reservationInputSchema = z.object({
-  bookingId: z.string().min(1),
-  slotId: z.string().min(1),
+export const bookingInputSchema = z.object({
+  stayId: z.string().min(1),
+  checkIn: z.iso.date(),
+  checkOut: z.iso.date(),
   guestName: z.string().trim().min(2).max(80),
   email: z.string().trim().email(),
   specialRequests: z
@@ -118,23 +210,48 @@ export const reservationInputSchema = z.object({
     .max(240)
     .optional()
     .transform((value) => (value && value.length > 0 ? value : undefined)),
+}).superRefine((value, context) => {
+  if (value.checkIn >= value.checkOut) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Check-out must be after check-in.",
+      path: ["checkOut"],
+    })
+  }
 })
 
-export const reservationSchema = z.object({
+export const bookingSchema = z.object({
   id: z.string().min(1),
-  bookingId: z.string().min(1),
-  bookingName: z.string().min(1),
-  slotLabel: z.string().min(1),
-  location: bookingLocationSchema,
+  stayId: z.string().min(1),
+  stayName: z.string().min(1),
+  location: stayLocationSchema,
+  checkIn: z.iso.date(),
+  checkOut: z.iso.date(),
+  nights: z.number().int().positive(),
+  nightlySubtotal: z.number().nonnegative(),
+  cleaningFee: z.number().nonnegative(),
+  serviceFee: z.number().nonnegative(),
   totalPrice: z.number().positive(),
   guestName: z.string().min(1),
   email: z.email(),
   confirmedAt: z.iso.datetime(),
 })
 
-export const bookingCardsResponseSchema = z.object({
-  bookings: z.array(bookingCardSchema),
+export const stayFilterBoundsSchema = z.object({
+  price: z.object({
+    min: z.number().nonnegative(),
+    max: z.number().nonnegative(),
+  }),
+  rating: z.object({
+    min: z.number().min(0).max(5),
+    max: z.number().min(0).max(5),
+  }),
+})
+
+export const stayCardsResponseSchema = z.object({
+  stays: z.array(stayCardSchema),
   availableCities: z.array(z.string().min(1)),
+  filterBounds: stayFilterBoundsSchema,
   total: z.number().int().nonnegative(),
 })
 
@@ -142,13 +259,29 @@ export const reviewsResponseSchema = z.object({
   reviews: z.array(reviewSchema),
 })
 
-export type AvailabilitySlot = z.infer<typeof availabilitySlotSchema>
+export const persistedStayEntrySchema = z.object({
+  stay: stayCardSchema,
+  updatedAt: z.iso.datetime(),
+})
+
+export const stayActivityStorageSchema = z.object({
+  version: z.literal(1),
+  recentlyViewed: z.array(persistedStayEntrySchema),
+  saved: z.array(persistedStayEntrySchema),
+})
+
 export type Amenity = z.infer<typeof amenitySchema>
-export type BookingCard = z.infer<typeof bookingCardSchema>
-export type BookingDetails = z.infer<typeof bookingDetailsSchema>
-export type BookingSearchParams = z.infer<typeof bookingSearchParamsSchema>
+export type FeedCollection = z.infer<typeof feedCollectionSchema>
+export type StayAvailabilityEntry = z.infer<typeof stayAvailabilityEntrySchema>
+export type StayBookingPolicy = z.infer<typeof stayBookingPolicySchema>
+export type StayCard = z.infer<typeof stayCardSchema>
+export type StayDetails = z.infer<typeof stayDetailsSchema>
+export type StaySearchParams = z.infer<typeof staySearchParamsSchema>
 export type CheckoutSearchParams = z.infer<typeof checkoutSearchParamsSchema>
-export type Reservation = z.infer<typeof reservationSchema>
-export type ReservationInput = z.infer<typeof reservationInputSchema>
+export type Booking = z.infer<typeof bookingSchema>
+export type BookingInput = z.infer<typeof bookingInputSchema>
 export type Review = z.infer<typeof reviewSchema>
 export type ReviewInput = z.infer<typeof reviewInputSchema>
+export type PersistedStayEntry = z.infer<typeof persistedStayEntrySchema>
+export type StayActivityStorage = z.infer<typeof stayActivityStorageSchema>
+export type StayFilterBounds = z.infer<typeof stayFilterBoundsSchema>

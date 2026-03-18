@@ -49,7 +49,7 @@ export function AmenityChip({ amenity, className, suffix }: AmenityChipProps) {
   return (
     <span
       className={cn(
-        "inline-flex min-w-0 items-center gap-1.5 rounded-lg bg-white/92 px-2.5 py-1 leading-none font-semibold text-slate-700 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.6)] backdrop-blur-sm dark:bg-slate-950/88 dark:text-slate-100",
+        "inline-flex min-w-0 items-center gap-1.5 rounded-lg border border-white/70 bg-white/92 px-2.5 py-1 leading-none font-semibold text-slate-700 dark:border-white/10 dark:bg-slate-950/92 dark:text-slate-100",
         className
       )}
     >

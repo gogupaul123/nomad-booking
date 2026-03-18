@@ -1,212 +1,280 @@
-import { startTransition, useState } from "react"
+import { startTransition, useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  ArrowLeft01Icon,
+  Building06Icon,
+  Calendar03Icon,
+  Location01Icon,
+} from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
+import { PaymentCard } from "@/components/billingsdk/payment-card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { buttonVariants } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { postReservation } from "@/features/stays/api-client"
+import { Separator } from "@/components/ui/separator"
+import { getStayBookingQuote } from "@/features/stays/booking"
+import { postBooking } from "@/features/stays/api-client"
 import {
-  bookingDetailsQueryOptions,
-  bookingKeys,
+  stayDetailsQueryOptions,
+  stayKeys,
 } from "@/features/stays/query-options"
-import {
-  reservationInputSchema,
-  checkoutSearchParamsSchema,
-} from "@/features/stays/schemas"
-import { formatCurrency, formatSlotRange } from "@/lib/formatters"
+import { bookingInputSchema, checkoutSearchParamsSchema } from "@/features/stays/schemas"
+import { formatCurrency, formatStayDateRange } from "@/lib/formatters"
+
+const MOCK_CHECKOUT_GUEST = {
+  email: "guest@nomad-booking.demo",
+  guestName: "Nomad Booking Guest",
+}
+
+function SummaryRow({
+  label,
+  value,
+  isTotal = false,
+}: {
+  label: string
+  value: string
+  isTotal?: boolean
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className={isTotal ? "font-medium" : "text-muted-foreground"}>
+        {label}
+      </span>
+      <span className={isTotal ? "text-xl font-semibold" : "tabular-nums"}>
+        {value}
+      </span>
+    </div>
+  )
+}
 
 export function CheckoutPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [formError, setFormError] = useState<string | null>(null)
+
   const parsedSearch = checkoutSearchParamsSchema.safeParse({
-    bookingId: searchParams.get("bookingId") ?? undefined,
-    slotId: searchParams.get("slotId") ?? undefined,
+    stayId: searchParams.get("stayId") ?? undefined,
+    checkIn: searchParams.get("checkIn") ?? undefined,
+    checkOut: searchParams.get("checkOut") ?? undefined,
   })
 
-  const bookingId = parsedSearch.success ? parsedSearch.data.bookingId : ""
-  const bookingQuery = useQuery(bookingDetailsQueryOptions(bookingId))
+  const stayId = parsedSearch.success ? parsedSearch.data.stayId : ""
+  const stayQuery = useQuery(stayDetailsQueryOptions(stayId))
 
-  const reservationMutation = useMutation({
-    mutationFn: postReservation,
-    onSuccess: (reservation) => {
+  const bookingMutation = useMutation({
+    mutationFn: postBooking,
+    onSuccess: (booking) => {
       void queryClient.invalidateQueries({
-        queryKey: bookingKeys.detail(bookingId),
+        queryKey: stayKeys.detail(stayId),
       })
-      void queryClient.invalidateQueries({ queryKey: bookingKeys.lists() })
+      void queryClient.invalidateQueries({ queryKey: stayKeys.lists() })
       startTransition(() => {
-        navigate("/confirmation", { state: reservation })
+        navigate("/confirmation", { state: booking })
       })
     },
   })
+
+  const quote = useMemo(() => {
+    if (!parsedSearch.success || !stayQuery.data) {
+      return null
+    }
+
+    return getStayBookingQuote(
+      stayQuery.data.availabilityCalendar,
+      stayQuery.data.bookingPolicy,
+      parsedSearch.data.checkIn,
+      parsedSearch.data.checkOut
+    )
+  }, [parsedSearch, stayQuery.data])
+
+  const bookingDraft = useMemo(() => {
+    if (!quote || !stayQuery.data) {
+      return null
+    }
+
+    return bookingInputSchema.parse({
+      stayId: stayQuery.data.id,
+      checkIn: quote.checkIn,
+      checkOut: quote.checkOut,
+      guestName: MOCK_CHECKOUT_GUEST.guestName,
+      email: MOCK_CHECKOUT_GUEST.email,
+      specialRequests: undefined,
+    })
+  }, [quote, stayQuery.data])
 
   if (!parsedSearch.success) {
     return (
       <Alert variant="destructive">
         <AlertTitle>Checkout link is incomplete</AlertTitle>
         <AlertDescription>
-          Pick a booking and an availability window before opening checkout.
+          Pick a stay and date range before opening checkout.
         </AlertDescription>
       </Alert>
     )
   }
 
-  if (bookingQuery.isPending || !bookingQuery.data) {
+  if (stayQuery.isPending || !stayQuery.data) {
     return <Card className="h-80 animate-pulse rounded-[28px]" />
   }
 
-  const booking = bookingQuery.data
-  const slot = booking.availabilitySlots.find(
-    (candidate) => candidate.id === parsedSearch.data.slotId
-  )
-
-  if (!slot) {
+  if (!quote) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>Selected slot no longer exists</AlertTitle>
+        <AlertTitle>Selected dates are no longer available</AlertTitle>
         <AlertDescription>
-          The booking window you selected is no longer available.
+          Go back to the stay page and pick a different date range before
+          continuing.
         </AlertDescription>
       </Alert>
     )
   }
 
+  const stay = stayQuery.data
+
   return (
-    <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-      <Card className="border border-white/70 bg-white/90 py-0 shadow-[0_24px_72px_-42px_rgba(16,42,72,0.38)] dark:border-white/10 dark:bg-white/5">
-        <CardHeader>
-          <CardTitle>Booking summary</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Mocked payment, but real validation at the form boundary.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4 pb-4">
-          <div className="aspect-[4/3] overflow-hidden rounded-[24px] border border-border/60">
-            <img
-              alt={booking.image.alt}
-              className="h-full w-full object-cover"
-              src={booking.image.src}
-            />
-          </div>
-          <div>
-            <p className="text-xl font-semibold">{booking.name}</p>
-            <p className="text-sm text-muted-foreground">
-              {booking.location.city}, {booking.location.country}
-            </p>
-          </div>
-          <div className="rounded-[20px] border border-border/70 bg-muted/30 p-4 text-sm">
-            <p className="font-medium">{slot.label}</p>
-            <p className="mt-1 text-muted-foreground">
-              {formatSlotRange(slot.checkIn, slot.checkOut)}
-            </p>
-            <p className="mt-3 text-lg font-semibold">
-              {formatCurrency(slot.totalPrice)}
-            </p>
-          </div>
-          <Link
-            className={buttonVariants({ size: "sm", variant: "outline" })}
-            to={`/bookings/${booking.id}`}
-          >
-            Back to booking details
-          </Link>
-        </CardContent>
-      </Card>
+    <section className="w-full space-y-8 pb-10">
+      <div className="flex items-center gap-4">
+        <Link
+          aria-label="Back to stay details"
+          className="inline-flex size-11 items-center justify-center text-foreground transition-colors hover:text-primary"
+          to={`/stays/${stay.id}`}
+        >
+          <HugeiconsIcon icon={ArrowLeft01Icon} size={24} strokeWidth={1.9} />
+        </Link>
 
-      <Card className="border border-border/70 bg-background/85 py-0">
-        <CardHeader>
-          <CardTitle>Checkout</CardTitle>
-        </CardHeader>
-        <CardContent className="pb-4">
-          <form
-            className="space-y-4"
-            onSubmit={async (event) => {
-              event.preventDefault()
-              const formData = new FormData(event.currentTarget)
+        <h1 className="text-4xl font-black tracking-tight text-foreground">
+          Confirm &amp; pay
+        </h1>
+      </div>
 
-              const parsedReservation = reservationInputSchema.safeParse({
-                bookingId: booking.id,
-                slotId: slot.id,
-                guestName: formData.get("guestName"),
-                email: formData.get("email"),
-                specialRequests: formData.get("specialRequests"),
-              })
+      <Card className="py-0">
+        <CardContent className="grid gap-0 p-0 xl:grid-cols-[minmax(0,1fr)_23rem] xl:items-stretch">
+          <div className="space-y-6 p-6 xl:pr-8">
+            <div className="text-base leading-snug font-medium">
+              Order Summary
+            </div>
 
-              if (!parsedReservation.success) {
-                setFormError(
-                  parsedReservation.error.issues[0]?.message ??
-                    "Invalid reservation request."
-                )
-                return
-              }
-
-              try {
-                await reservationMutation.mutateAsync(parsedReservation.data)
-              } catch (error) {
-                setFormError(
-                  error instanceof Error
-                    ? error.message
-                    : "Unable to confirm booking."
-                )
-              }
-            }}
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2">
-                <Label htmlFor="guestName">Guest name</Label>
-                <Input id="guestName" name="guestName" placeholder="Alex Rivers" />
-              </label>
-              <label className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  placeholder="alex@example.com"
-                  type="email"
+            <div className="grid gap-5 md:grid-cols-[12.5rem_minmax(0,1fr)] md:items-start">
+              <div className="aspect-[4/3] overflow-hidden rounded-xl">
+                <img
+                  alt={stay.image.alt}
+                  className="h-full w-full object-cover"
+                  src={stay.image.src}
                 />
-              </label>
+              </div>
+
+              <div className="space-y-3">
+                <h2 className="text-3xl font-black tracking-tight text-foreground">
+                  {stay.name}
+                </h2>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5">
+                    <HugeiconsIcon
+                      icon={Location01Icon}
+                      size={16}
+                      strokeWidth={1.9}
+                    />
+                    {stay.location.city}, {stay.location.country}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <HugeiconsIcon
+                      icon={Building06Icon}
+                      size={16}
+                      strokeWidth={1.9}
+                    />
+                    {stay.hostType}
+                  </span>
+                </div>
+                <p className="text-sm leading-7 text-muted-foreground">
+                  {stay.description}
+                </p>
+              </div>
             </div>
 
-            <label className="space-y-2">
-              <Label htmlFor="specialRequests">Special requests</Label>
-              <Textarea
-                id="specialRequests"
-                name="specialRequests"
-                placeholder="Optional: quiet floor, monitor rental, late check-in."
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 text-sm font-medium">
+                <HugeiconsIcon
+                  className="text-primary"
+                  icon={Calendar03Icon}
+                  size={18}
+                  strokeWidth={1.9}
+                />
+                <span className="text-xl font-semibold text-foreground">
+                  {formatStayDateRange(quote.checkIn, quote.checkOut)}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {quote.nights} night{quote.nights === 1 ? "" : "s"} for 1
+                person
+              </p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <SummaryRow
+                label={`Stay subtotal (${quote.nights} night${quote.nights === 1 ? "" : "s"})`}
+                value={formatCurrency(quote.nightlySubtotal)}
               />
-            </label>
-
-            <div className="rounded-[20px] border border-border/70 bg-muted/25 p-4 text-sm text-muted-foreground">
-              Payment is mocked for the challenge. Submitting this form calls
-              the backend reservation function and returns a confirmation state.
+              <SummaryRow
+                label="Cleaning fee"
+                value={formatCurrency(quote.cleaningFee)}
+              />
+              <SummaryRow
+                label="Service fee"
+                value={formatCurrency(quote.serviceFee)}
+              />
+              <SummaryRow
+                isTotal
+                label="Total"
+                value={formatCurrency(quote.totalPrice)}
+              />
             </div>
+          </div>
 
-            {formError ? (
-              <Alert variant="destructive">
-                <AlertTitle>Reservation not confirmed</AlertTitle>
-                <AlertDescription>{formError}</AlertDescription>
-              </Alert>
-            ) : null}
+          <div className="relative xl:self-stretch">
+            <div className="absolute inset-y-0 left-0 hidden w-px bg-border xl:block" />
+            <div className="flex h-full min-h-full flex-col px-6 py-6">
+              <PaymentCard
+                className="max-w-none flex-1"
+                description="Enter card details to continue."
+                embedded
+                footerNote="This is a mockup pay."
+                onPay={async () => {
+                  if (!bookingDraft) {
+                    setFormError("Unable to prepare the booking right now.")
+                    return
+                  }
 
-            <button
-              className={buttonVariants({ size: "lg" })}
-              disabled={reservationMutation.isPending || !slot.isAvailable}
-              type="submit"
-            >
-              {reservationMutation.isPending
-                ? "Confirming..."
-                : "Confirm reservation"}
-            </button>
-          </form>
+                  setFormError(null)
+
+                  try {
+                    await bookingMutation.mutateAsync(bookingDraft)
+                  } catch (error) {
+                    setFormError(
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to confirm booking."
+                    )
+                  }
+                }}
+                price={String(quote.totalPrice)}
+                title="Payment details"
+              />
+
+              {formError ? (
+                <Alert className="mt-4" variant="destructive">
+                  <AlertTitle>Booking not confirmed</AlertTitle>
+                  <AlertDescription>{formError}</AlertDescription>
+                </Alert>
+              ) : null}
+            </div>
+          </div>
         </CardContent>
       </Card>
     </section>

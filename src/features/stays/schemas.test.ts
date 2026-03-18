@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  bookingSearchParamsSchema,
+  staySearchParamsSchema,
   reviewInputSchema,
 } from "@/features/stays/schemas"
 
-describe("bookingSearchParamsSchema", () => {
+describe("staySearchParamsSchema", () => {
   it("normalizes empty values into defaults", () => {
     expect(
-      bookingSearchParamsSchema.parse({
+      staySearchParamsSchema.parse({
         query: "   ",
         city: "",
         sort: undefined,
@@ -16,7 +16,35 @@ describe("bookingSearchParamsSchema", () => {
     ).toEqual({
       query: undefined,
       city: undefined,
-      sort: "recommended",
+      minPrice: undefined,
+      maxPrice: undefined,
+      minRating: undefined,
+      maxRating: undefined,
+      sort: "rating-high",
+    })
+  })
+
+  it("accepts the supported server-side sort options", () => {
+    expect(
+      staySearchParamsSchema.parse({
+        sort: "price-high",
+      }).sort
+    ).toBe("price-high")
+  })
+
+  it("parses numeric filter values from search params", () => {
+    expect(
+      staySearchParamsSchema.parse({
+        minPrice: "120",
+        maxPrice: "220",
+        minRating: "4.2",
+        maxRating: "4.8",
+      })
+    ).toMatchObject({
+      minPrice: 120,
+      maxPrice: 220,
+      minRating: 4.2,
+      maxRating: 4.8,
     })
   })
 })
@@ -25,7 +53,7 @@ describe("reviewInputSchema", () => {
   it("rejects comments that are too short", () => {
     expect(() =>
       reviewInputSchema.parse({
-        author: "Sam",
+        name: "Sam",
         rating: 4,
         comment: "Too short",
       })

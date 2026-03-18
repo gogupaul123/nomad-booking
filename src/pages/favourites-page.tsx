@@ -1,39 +1,59 @@
-import { Link } from "react-router-dom"
+import {
+  Calendar03Icon,
+  Clock01Icon,
+  FavouriteIcon,
+} from "@hugeicons/core-free-icons"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { buttonVariants } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { HorizontalStaysRow } from "@/features/stays/components/HorizontalStaysRow"
+import { useStayActivity } from "@/features/stays/persistence"
+import { Separator } from "@/components/ui/separator"
 
 export function FavouritesPage() {
-  return (
-    <div className="w-full space-y-6">
-      <div className="space-y-2">
-        <p className="text-[0.72rem] font-black tracking-[0.42em] text-primary uppercase">
-          Favourites
-        </p>
-        <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
-          Shortlist stays you want to come back to.
-        </h1>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          This route is in place as part of the app shell and navigation
-          foundation. Saved-booking behavior can plug into this screen next.
-        </p>
-      </div>
+  const stayActivity = useStayActivity()
+  const recentlyViewedStays = stayActivity.recentlyViewed.map(
+    (entry) => entry.stay
+  )
+  const savedStays = stayActivity.saved.map((entry) => entry.stay)
 
-      <Alert className="border-border/70 bg-card/80">
-        <AlertTitle>No favourites yet</AlertTitle>
-        <AlertDescription className="mt-2 space-y-4">
-          <p>
-            Browse the feed and start saving the stays that fit your shortlist.
-          </p>
-          <Link
-            className={cn(buttonVariants({ size: "sm" }), "w-fit")}
-            to="/feed"
-          >
-            Explore the feed
-          </Link>
-        </AlertDescription>
-      </Alert>
+  return (
+    <div className="h-full w-full overflow-hidden">
+      <div className="flex h-full flex-col gap-4 overflow-hidden">
+        <HorizontalStaysRow
+          emptyState={{
+            icon: Calendar03Icon,
+            title: "No bookings yet",
+            description:
+              "Once you confirm a stay, your upcoming bookings will appear here for quick access.",
+          }}
+          icon={Calendar03Icon}
+          stays={[]}
+          title="Your bookings"
+        />
+        <Separator className="self-center data-horizontal:w-4/5" />
+        <HorizontalStaysRow
+          emptyState={{
+            icon: Clock01Icon,
+            title: "No recently viewed stays",
+            description:
+              "Open a few stay pages from the feed and they’ll appear here for quick access.",
+          }}
+          icon={Clock01Icon}
+          stays={recentlyViewedStays}
+          title="Recently viewed"
+        />
+        <Separator className="self-center data-horizontal:w-4/5" />
+        <HorizontalStaysRow
+          emptyState={{
+            icon: FavouriteIcon,
+            title: "No saved stays yet",
+            description:
+              "Tap the heart on any stay card and your shortlist will start building here.",
+          }}
+          icon={FavouriteIcon}
+          stays={savedStays}
+          title="Saved stays"
+        />
+      </div>
     </div>
   )
 }
