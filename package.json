@@ -1,15 +1,20 @@
 {
-  "name": "nomad-cafe",
+  "name": "nomad-booking",
   "private": true,
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -k -n web,api -c cyan,magenta \"bun run dev:web\" \"bun run dev:api\"",
+    "dev:web": "vite",
+    "dev:api": "bun run scripts/dev-api.ts",
+    "dev:full": "bun run dev",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit",
-    "preview": "vite preview"
+    "typecheck": "tsc -b",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -39,6 +44,7 @@
     "@types/react-dom": "^19.2.3",
     "@vercel/node": "^5.6.16",
     "@vitejs/plugin-react": "^5.2.0",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
