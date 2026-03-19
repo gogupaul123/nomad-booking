@@ -5,7 +5,8 @@ import { getStayById } from "../../src/features/stays/mock-store.js"
 
 function getStayId(request: VercelRequest) {
   const rawId = request.query.id
-  return Array.isArray(rawId) ? rawId[0] : rawId
+  const stayId = Array.isArray(rawId) ? rawId[0] : rawId
+  return stayId ? decodeURIComponent(stayId) : stayId
 }
 
 export default function handler(request: VercelRequest, response: VercelResponse) {

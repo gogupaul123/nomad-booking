@@ -38,6 +38,13 @@ describe("mock stay catalog", () => {
     }
   })
 
+  it("resolves a stay by slug as well as id", () => {
+    const stay = getStayById("lisbon-loft-house")
+
+    expect(stay.id).toBe("stay_lisbon-loft")
+    expect(stay.slug).toBe("lisbon-loft-house")
+  })
+
   it("creates a range booking and stores the selected dates", () => {
     const stay = getStayById("stay_lisbon-loft")
     const range = getFirstBookableRange(stay.availabilityCalendar, stay.bookingPolicy)

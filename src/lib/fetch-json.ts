@@ -23,6 +23,7 @@ export async function fetchJson<T>(
   init?: RequestInit
 ) {
   const response = await fetch(input, {
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       ...init?.headers,

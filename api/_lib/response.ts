@@ -4,6 +4,7 @@ import { ZodError } from "zod"
 import { StoreError } from "../../src/features/stays/mock-store.js"
 
 export function sendJson(response: VercelResponse, status: number, payload: unknown) {
+  response.setHeader("Cache-Control", "no-store, max-age=0")
   response.status(status).json(payload)
 }
 

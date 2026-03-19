@@ -78,6 +78,7 @@ import {
   type ReviewInput,
   type StayDetails,
 } from "@/features/stays/schemas"
+import { ApiError } from "@/lib/fetch-json"
 import { cn } from "@/lib/utils"
 
 type HeadingIcon = typeof ArrowLeft01Icon
@@ -673,12 +674,19 @@ export function StayPage() {
   }
 
   if (stayQuery.isError || !stay) {
+    const isMissingStay =
+      stayQuery.error instanceof ApiError && stayQuery.error.status === 404
+
     return (
       <div className="w-full py-8">
         <Alert variant="destructive">
-          <AlertTitle>Stay not found</AlertTitle>
+          <AlertTitle>
+            {isMissingStay ? "Stay not found" : "Unable to load stay"}
+          </AlertTitle>
           <AlertDescription>
-            The details endpoint did not return a stay for this id.
+            {isMissingStay
+              ? "The details endpoint did not return a stay for this id."
+              : "We couldn't load this stay right now. Try refreshing the page in a moment."}
           </AlertDescription>
         </Alert>
       </div>

@@ -894,6 +894,13 @@ function toStayDetails(record: StayRecord): StayDetails {
   })
 }
 
+function findStayRecord(stayIdentifier: string) {
+  return stayRecords.find(
+    (record) =>
+      record.id === stayIdentifier || record.slug === stayIdentifier
+  )
+}
+
 export function listStayCards(filters: StaySearchParams) {
   const normalizedQuery = filters.query?.toLocaleLowerCase()
   const normalizedCity = filters.city?.toLocaleLowerCase()
@@ -963,7 +970,7 @@ export function listStayCards(filters: StaySearchParams) {
 }
 
 export function getStayById(stayId: string) {
-  const stay = stayRecords.find((record) => record.id === stayId)
+  const stay = findStayRecord(stayId)
 
   if (!stay) {
     throw new StoreError("Stay not found.", 404)
@@ -973,13 +980,19 @@ export function getStayById(stayId: string) {
 }
 
 export function getReviewsByStayId(stayId: string) {
+  const stay = findStayRecord(stayId)
+
+  if (!stay) {
+    throw new StoreError("Stay not found.", 404)
+  }
+
   return reviewsResponseSchema.parse({
-    reviews: getReviewsForStay(stayId),
+    reviews: getReviewsForStay(stay.id),
   })
 }
 
 export function addReview(stayId: string, input: ReviewInput) {
-  const stay = stayRecords.find((record) => record.id === stayId)
+  const stay = findStayRecord(stayId)
 
   if (!stay) {
     throw new StoreError("Stay not found.", 404)
@@ -999,7 +1012,7 @@ export function addReview(stayId: string, input: ReviewInput) {
 }
 
 export function createBooking(input: BookingInput) {
-  const stay = stayRecords.find((record) => record.id === input.stayId)
+  const stay = findStayRecord(input.stayId)
 
   if (!stay) {
     throw new StoreError("Stay not found.", 404)
