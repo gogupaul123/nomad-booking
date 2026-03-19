@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
 
-import { sendJson, sendRouteError } from "../_lib/response"
-import { getStayById } from "../../src/features/stays/mock-store"
+import { sendJson, sendRouteError } from "../_lib/response.js"
+import { getStayById } from "../../src/features/stays/mock-store.js"
 
 function getStayId(request: VercelRequest) {
   const rawId = request.query.id

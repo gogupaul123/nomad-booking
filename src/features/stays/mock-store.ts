@@ -2,7 +2,7 @@ import {
   getMinimumAvailableNightlyPrice,
   getNextAvailableCheckIn,
   getStayBookingQuote,
-} from "./booking"
+} from "./booking.js"
 import {
   stayCardsResponseSchema,
   stayDetailsSchema,
@@ -20,7 +20,7 @@ import {
   type Review,
   type ReviewInput,
   type StayBookingPolicy,
-} from "./schemas"
+} from "./schemas.js"
 
 type StayRecord = Omit<
   StayDetails,

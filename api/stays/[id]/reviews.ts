@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
 
-import { parseJsonBody, sendJson, sendRouteError } from "../../_lib/response"
-import { addReview, getReviewsByStayId } from "../../../src/features/stays/mock-store"
-import { reviewInputSchema } from "../../../src/features/stays/schemas"
+import { parseJsonBody, sendJson, sendRouteError } from "../../_lib/response.js"
+import { addReview, getReviewsByStayId } from "../../../src/features/stays/mock-store.js"
+import { reviewInputSchema } from "../../../src/features/stays/schemas.js"
 
 function getStayId(request: VercelRequest) {
   const rawId = request.query.id

@@ -28,7 +28,7 @@ export default async function handler(
   const diagnostics: Record<string, unknown> = {}
 
   try {
-    const schemasModule = await import("../src/features/stays/schemas")
+    const schemasModule = await import("../src/features/stays/schemas.js")
     diagnostics.schemas = {
       ok: true,
       exports: Object.keys(schemasModule).slice(0, 12),
@@ -41,7 +41,7 @@ export default async function handler(
   }
 
   try {
-    const bookingModule = await import("../src/features/stays/booking")
+    const bookingModule = await import("../src/features/stays/booking.js")
     diagnostics.booking = {
       ok: true,
       exports: Object.keys(bookingModule),
@@ -54,7 +54,7 @@ export default async function handler(
   }
 
   try {
-    const storeModule = await import("../src/features/stays/mock-store")
+    const storeModule = await import("../src/features/stays/mock-store.js")
     const sample = storeModule.listStayCards({
       sort: "rating-high",
     })

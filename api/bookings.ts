@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
 
-import { parseJsonBody, sendJson, sendRouteError } from "./_lib/response"
-import { createBooking } from "../src/features/stays/mock-store"
-import { bookingInputSchema } from "../src/features/stays/schemas"
+import { parseJsonBody, sendJson, sendRouteError } from "./_lib/response.js"
+import { createBooking } from "../src/features/stays/mock-store.js"
+import { bookingInputSchema } from "../src/features/stays/schemas.js"
 
 export default function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== "POST") {
