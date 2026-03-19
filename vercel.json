@@ -2,6 +2,18 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/api/stays/:id/reviews",
+      "destination": "/api/stays/[id]/reviews?id=:id"
+    },
+    {
+      "source": "/api/stays/:id",
+      "destination": "/api/stays/[id]?id=:id"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
