@@ -76,6 +76,7 @@ import {
   reviewInputSchema,
   type Review,
   type ReviewInput,
+  type StayDetails,
 } from "@/features/stays/schemas"
 import { cn } from "@/lib/utils"
 
@@ -122,6 +123,23 @@ function mapReviewFieldErrors(
 
     return errors
   }, {})
+}
+
+function applyReviewSummary<T extends Pick<StayDetails, "rating" | "reviewCount">>(
+  stay: T,
+  review: Review
+) {
+  const nextReviewCount = stay.reviewCount + 1
+  const nextRating =
+    nextReviewCount === 1
+      ? review.rating
+      : (stay.rating * stay.reviewCount + review.rating) / nextReviewCount
+
+  return {
+    ...stay,
+    rating: nextRating,
+    reviewCount: nextReviewCount,
+  }
 }
 
 function SectionHeading({
@@ -303,7 +321,7 @@ export function StayPage() {
 
   const reviewMutation = useMutation<Review, unknown, ReviewInput>({
     mutationFn: (input) => postReview(stayId, input),
-    onSuccess: async (review) => {
+    onSuccess: (review) => {
       queryClient.setQueryData<{ reviews: Review[] }>(
         stayKeys.reviews(stayId),
         (current) => ({
@@ -316,14 +334,24 @@ export function StayPage() {
         })
       )
 
+      queryClient.setQueryData<StayDetails>(
+        stayKeys.detail(stayId),
+        (current) => {
+          if (!current) {
+            return current
+          }
+
+          return applyReviewSummary(current, review)
+        }
+      )
+
       setIsReviewDialogOpen(false)
       resetReviewDraft()
 
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: stayKeys.detail(stayId) }),
-        queryClient.invalidateQueries({ queryKey: stayKeys.reviews(stayId) }),
-        queryClient.invalidateQueries({ queryKey: stayKeys.lists() }),
-      ])
+      void queryClient.invalidateQueries({
+        queryKey: stayKeys.lists(),
+        refetchType: "none",
+      })
     },
     onError: (error) => {
       setReviewError(
