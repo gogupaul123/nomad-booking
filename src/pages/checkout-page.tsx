@@ -18,6 +18,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { getStayBookingQuote } from "@/features/stays/booking"
 import { postBooking } from "@/features/stays/api-client"
+import { recordConfirmedBooking } from "@/features/stays/persistence"
 import {
   stayDetailsQueryOptions,
   stayKeys,
@@ -69,6 +70,10 @@ export function CheckoutPage() {
   const bookingMutation = useMutation({
     mutationFn: postBooking,
     onSuccess: (booking) => {
+      if (stayQuery.data) {
+        recordConfirmedBooking(booking, stayQuery.data)
+      }
+
       void queryClient.invalidateQueries({
         queryKey: stayKeys.detail(stayId),
       })

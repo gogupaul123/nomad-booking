@@ -4,10 +4,11 @@ import {
   clearStoredStayActivity,
   getStoredStayActivity,
   isStaySaved,
+  recordConfirmedBooking,
   recordRecentlyViewedStay,
   toggleSavedStay,
 } from "@/features/stays/persistence"
-import type { StayCard } from "@/features/stays/schemas"
+import type { Booking, StayCard } from "@/features/stays/schemas"
 
 const lisbonStay: StayCard = {
   id: "stay_lisbon-loft",
@@ -40,6 +41,23 @@ const tbilisiStay: StayCard = {
   },
 }
 
+const lisbonBooking: Booking = {
+  id: "booking_lisbon-loft_1",
+  stayId: lisbonStay.id,
+  stayName: lisbonStay.name,
+  location: lisbonStay.location,
+  checkIn: "2026-04-11",
+  checkOut: "2026-04-14",
+  nights: 3,
+  nightlySubtotal: 492,
+  cleaningFee: 28,
+  serviceFee: 19,
+  totalPrice: 539,
+  guestName: "Nomad Booking Guest",
+  email: "guest@nomad-booking.demo",
+  confirmedAt: "2026-03-19T09:20:00.000Z",
+}
+
 describe("stay persistence", () => {
   beforeEach(() => {
     localStorage.clear()
@@ -69,5 +87,15 @@ describe("stay persistence", () => {
     expect(toggleSavedStay(lisbonStay)).toBe(false)
     expect(isStaySaved(lisbonStay.id)).toBe(false)
     expect(getStoredStayActivity().saved).toHaveLength(0)
+  })
+
+  it("stores confirmed bookings with a stay snapshot", () => {
+    recordConfirmedBooking(lisbonBooking, lisbonStay)
+
+    expect(getStoredStayActivity().bookings).toHaveLength(1)
+    expect(getStoredStayActivity().bookings[0]?.booking.id).toBe(
+      lisbonBooking.id
+    )
+    expect(getStoredStayActivity().bookings[0]?.stay.id).toBe(lisbonStay.id)
   })
 })

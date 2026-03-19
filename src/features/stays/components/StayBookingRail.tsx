@@ -11,6 +11,13 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
 import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer"
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -131,9 +138,10 @@ export function StayBookingRail({
   const [draftRange, setDraftRange] = useState<DateRange | undefined>(
     toDateRange(initialSelection)
   )
-  const [isCalendarPopoverOpen, setIsCalendarPopoverOpen] = useState(false)
+  const [isCalendarPickerOpen, setIsCalendarPickerOpen] = useState(false)
   const [activeDateField, setActiveDateField] =
     useState<ActiveDateField>("checkIn")
+  const [hasManualFieldOverride, setHasManualFieldOverride] = useState(false)
 
   const selectedQuote = useMemo(() => {
     if (!selectedDates) {
@@ -191,10 +199,23 @@ export function StayBookingRail({
     return `/checkout?${searchParams.toString()}`
   }, [selectedQuote, stay.id])
 
+  const draftCheckIn = draftRange?.from
+    ? toCalendarDateString(draftRange.from)
+    : null
+
+  const effectiveActiveDateField: ActiveDateField = !draftRange?.from
+    ? "checkIn"
+    : !draftRange.to && !hasManualFieldOverride
+      ? "checkOut"
+      : activeDateField
+
+  const isSelectingCheckout =
+    effectiveActiveDateField === "checkOut" && draftCheckIn !== null
+
   const isCalendarDayDisabled = (date: Date) => {
     const dateKey = toCalendarDateString(date)
 
-    if (!draftRange?.from || draftRange.to) {
+    if (!isSelectingCheckout) {
       return !isCheckInDateSelectable(
         stay.availabilityCalendar,
         stay.bookingPolicy,
@@ -202,24 +223,383 @@ export function StayBookingRail({
       )
     }
 
-    const checkIn = toCalendarDateString(draftRange.from)
-
-    if (dateKey <= checkIn) {
+    if (dateKey <= draftCheckIn) {
       return true
     }
 
     return !isCheckoutDateSelectable(
       stay.availabilityCalendar,
       stay.bookingPolicy,
-      checkIn,
+      draftCheckIn,
       dateKey
     )
   }
 
-  const openCalendarPopover = (field: ActiveDateField) => {
-    setActiveDateField(field)
+  const handleCheckInSelection = (date: Date) => {
+    setDraftRange({ from: date, to: undefined })
+    setSelectedDates(null)
+    setActiveDateField("checkOut")
+    setHasManualFieldOverride(false)
+  }
+
+  const handleCheckOutSelection = (date: Date) => {
+    if (!draftRange?.from) {
+      handleCheckInSelection(date)
+      return
+    }
+
+    const checkIn = toCalendarDateString(draftRange.from)
+    const checkOut = toCalendarDateString(date)
+
+    if (checkOut <= checkIn) {
+      return
+    }
+
+    const maybeQuote = getStayBookingQuote(
+      stay.availabilityCalendar,
+      stay.bookingPolicy,
+      checkIn,
+      checkOut
+    )
+
+    if (!maybeQuote) {
+      return
+    }
+
+    setDraftRange({ from: draftRange.from, to: date })
+    setSelectedDates({
+      checkIn: maybeQuote.checkIn,
+      checkOut: maybeQuote.checkOut,
+    })
+    setHasManualFieldOverride(false)
+  }
+
+  const handleCalendarDayClick = (date: Date) => {
+    if (isCalendarDayDisabled(date)) {
+      return
+    }
+
+    if (effectiveActiveDateField === "checkOut" && draftRange?.from) {
+      handleCheckOutSelection(date)
+      return
+    }
+
+    handleCheckInSelection(date)
+  }
+
+  const resetDraftRange = () => {
     setDraftRange(toDateRange(selectedDates))
-    setIsCalendarPopoverOpen(true)
+    setHasManualFieldOverride(false)
+  }
+
+  const handleCalendarPickerOpenChange = (open: boolean) => {
+    setIsCalendarPickerOpen(open)
+
+    if (!open) {
+      resetDraftRange()
+    }
+  }
+
+  const openCalendarPicker = (field: ActiveDateField) => {
+    const nextDraftRange = toDateRange(selectedDates)
+    const canHonorRequestedField =
+      field === "checkIn" || Boolean(nextDraftRange?.from)
+
+    setActiveDateField(canHonorRequestedField ? field : "checkIn")
+    setHasManualFieldOverride(canHonorRequestedField)
+    setDraftRange(nextDraftRange)
+    setIsCalendarPickerOpen(true)
+  }
+
+  const handleClearDates = () => {
+    setDraftRange(undefined)
+    setSelectedDates(null)
+    setActiveDateField("checkIn")
+    setHasManualFieldOverride(false)
+  }
+
+  const calendarPanelContent = (
+    <>
+      <div
+        className={cn(
+          "grid items-start gap-6 pt-0",
+          isMobileViewport
+            ? "grid-cols-1 gap-4 px-3 pt-4"
+            : ""
+        )}
+        style={
+          isMobileViewport
+            ? undefined
+            : { gridTemplateColumns: "minmax(0,1fr) var(--anchor-width)" }
+        }
+      >
+        <div className={cn("min-w-0", isMobileViewport ? "" : "px-6 pt-6")}>
+          <div className="space-y-1">
+            <p className="text-md font-semibold tracking-tight text-foreground">
+              {draftQuote
+                ? `${draftQuote.nights} night${draftQuote.nights === 1 ? "" : "s"}`
+                : "Select your dates"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {draftQuote
+                ? formatStayDateRange(draftQuote.checkIn, draftQuote.checkOut)
+                : "Choose check-in and check-out for this stay."}
+            </p>
+          </div>
+        </div>
+
+        <div className={cn("shrink-0", isMobileViewport ? "" : "")}>
+          <DateRangeTriggerRow
+            activeField={effectiveActiveDateField}
+            checkInValue={
+              draftRange?.from ? toCalendarDateString(draftRange.from) : undefined
+            }
+            checkOutValue={
+              draftRange?.to ? toCalendarDateString(draftRange.to) : undefined
+            }
+            onOpenField={(field) => {
+              const canHonorRequestedField =
+                field === "checkIn" || Boolean(draftRange?.from)
+
+              setActiveDateField(canHonorRequestedField ? field : "checkIn")
+              setHasManualFieldOverride(canHonorRequestedField)
+            }}
+          />
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "w-full pt-5",
+          isMobileViewport ? "px-1.5 pb-3" : "flex justify-center px-4 pb-4"
+        )}
+      >
+        <Calendar
+          key={`stay-booking-calendar-${draftCheckIn ?? "empty"}-${draftRange?.to ? toCalendarDateString(draftRange.to) : "open"}-${effectiveActiveDateField}`}
+          captionLayout="label"
+          className={cn(
+            "w-full max-w-none bg-transparent p-0",
+            isMobileViewport
+              ? "[--cell-size:calc((100%_-_1.5rem)/7)]"
+              : "md:w-fit"
+          )}
+          classNames={{
+            root: "relative w-full min-w-0 md:w-fit",
+            months: cn(
+              "w-full",
+              isMobileViewport
+                ? "grid grid-cols-1 gap-2"
+                : "flex w-full flex-col gap-2 md:w-fit md:flex-row md:gap-2"
+            ),
+            month: cn(
+              "w-full min-w-0",
+              isMobileViewport ? "" : "md:w-[15rem] md:flex-none"
+            ),
+            month_caption:
+              cn(
+                "flex h-12 w-full items-center justify-center text-lg font-semibold",
+                isMobileViewport ? "px-8" : "px-10 md:px-12"
+              ),
+            month_grid: "w-full border-collapse table-fixed",
+            nav: "pointer-events-none absolute inset-x-0 top-0 z-10 flex w-full items-center justify-between",
+            button_previous:
+              "pointer-events-auto size-10 rounded-full border-0 bg-transparent text-foreground shadow-none hover:bg-transparent hover:text-primary",
+            button_next:
+              "pointer-events-auto size-10 rounded-full border-0 bg-transparent text-foreground shadow-none hover:bg-transparent hover:text-primary",
+            table: "w-full table-fixed border-collapse",
+            weekdays: "mt-2 grid w-full grid-cols-7 gap-1",
+            weekday:
+              "flex h-9 items-center justify-center text-sm font-medium text-muted-foreground",
+            week: "mt-1 grid w-full grid-cols-7 gap-1",
+          }}
+          disabled={isCalendarDayDisabled}
+          excludeDisabled
+          mode="range"
+          numberOfMonths={2}
+          onDayClick={handleCalendarDayClick}
+          selected={draftRange}
+        />
+      </div>
+
+      <div
+        className={cn(
+          "flex items-center justify-end gap-3 px-6 pb-6",
+          isMobileViewport ? "px-3 pb-4" : ""
+        )}
+      >
+        <Button
+          className="shrink-0"
+          onClick={handleClearDates}
+          size="lg"
+          type="button"
+          variant="ghost"
+        >
+          <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={1.9} />
+          <span>Clear dates</span>
+        </Button>
+
+        <Button
+          className="shrink-0"
+          onClick={() => {
+            resetDraftRange()
+            setIsCalendarPickerOpen(false)
+          }}
+          size="lg"
+          type="button"
+          variant="outline"
+        >
+          Close
+        </Button>
+      </div>
+    </>
+  )
+
+  const dateRangeTrigger = (
+    <DateRangeTriggerRow
+      activeField={
+        isCalendarPickerOpen && !isMobileViewport
+          ? effectiveActiveDateField
+          : undefined
+      }
+      checkInValue={selectedDates?.checkIn}
+      checkOutValue={selectedDates?.checkOut}
+      className={cn(
+        "transition-opacity duration-150",
+        isCalendarPickerOpen &&
+          !isMobileViewport &&
+          "pointer-events-none invisible"
+      )}
+      onOpenField={openCalendarPicker}
+    />
+  )
+
+  const cardContent = (
+    <>
+      {isMobileViewport ? (
+        dateRangeTrigger
+      ) : (
+        <PopoverTrigger
+          className="block"
+          nativeButton={false}
+          render={<div />}
+        >
+          {dateRangeTrigger}
+        </PopoverTrigger>
+      )}
+
+      {selectedQuote ? (
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between gap-4 text-sm">
+            <span className="text-muted-foreground">
+              Stay subtotal ({selectedQuote.nights} night
+              {selectedQuote.nights === 1 ? "" : "s"})
+            </span>
+            <span className="font-medium text-foreground">
+              {formatCurrency(selectedQuote.nightlySubtotal)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4 text-sm">
+            <span className="text-muted-foreground">Cleaning fee</span>
+            <span className="font-medium text-foreground">
+              {formatCurrency(selectedQuote.cleaningFee)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4 text-sm">
+            <span className="text-muted-foreground">Service fee</span>
+            <span className="font-medium text-foreground">
+              {formatCurrency(selectedQuote.serviceFee)}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm leading-6 text-muted-foreground">
+          Choose a valid date range to see the total and continue to
+          checkout.
+        </p>
+      )}
+
+      {selectedQuote ? (
+        <Link
+          className={cn(buttonVariants({ size: "lg" }), "w-full")}
+          to={reserveSearch}
+        >
+          <HugeiconsIcon
+            icon={CreditCardIcon}
+            size={18}
+            strokeWidth={1.9}
+          />
+          Reserve
+        </Link>
+      ) : (
+        <button
+          className={cn(
+            buttonVariants({ size: "lg", variant: "outline" }),
+            "w-full"
+          )}
+          disabled
+          type="button"
+        >
+          <HugeiconsIcon
+            icon={CreditCardIcon}
+            size={18}
+            strokeWidth={1.9}
+          />
+          Select your dates
+        </button>
+      )}
+
+      <p className="text-center text-sm text-muted-foreground">
+        Your card won&apos;t be charged yet.
+      </p>
+    </>
+  )
+
+  const card = (
+    <Card className="flex min-h-0 w-full overflow-visible rounded-[1.75rem] py-0 text-left lg:ml-6">
+      <CardContent className="flex min-h-0 flex-col space-y-5 p-6">
+        <div className="space-y-1">
+          {selectedQuote ? (
+            <>
+              <span className="text-2xl font-semibold text-foreground">
+                In total {formatCurrency(selectedQuote.totalPrice)}
+              </span>
+              <p className="text-sm text-muted-foreground">
+                {selectedQuote.nights} night
+                {selectedQuote.nights === 1 ? "" : "s"} for 1 person
+              </p>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-semibold text-foreground">
+                From {formatCurrency(startingPrice)}
+              </span>
+              <p className="text-sm text-muted-foreground">
+                Minimum available price for 1 night and 1 guest.
+              </p>
+            </>
+          )}
+        </div>
+
+        {cardContent}
+      </CardContent>
+    </Card>
+  )
+
+  if (isMobileViewport) {
+    return (
+      <Drawer onOpenChange={handleCalendarPickerOpenChange} open={isCalendarPickerOpen}>
+        {card}
+        <DrawerContent className="gap-0 overflow-y-auto rounded-t-[1.8rem] border-t border-border/70 bg-popover px-0 pb-[max(1rem,env(safe-area-inset-bottom))] text-popover-foreground data-[vaul-drawer-direction=bottom]:max-h-[92vh]">
+          <DrawerHeader className="sr-only">
+            <DrawerTitle>Stay booking dates</DrawerTitle>
+            <DrawerDescription>
+              Choose check-in and check-out dates for this stay.
+            </DrawerDescription>
+          </DrawerHeader>
+          {calendarPanelContent}
+        </DrawerContent>
+      </Drawer>
+    )
   }
 
   return (
@@ -230,259 +610,18 @@ export function StayBookingRail({
           return
         }
 
-        setIsCalendarPopoverOpen(open)
-
-        if (!open) {
-          setDraftRange(toDateRange(selectedDates))
-        }
+        handleCalendarPickerOpenChange(open)
       }}
-      open={isCalendarPopoverOpen}
+      open={isCalendarPickerOpen}
     >
-      <Card className="flex min-h-0 w-full overflow-visible rounded-[1.75rem] py-0 text-left lg:ml-6">
-        <CardContent className="flex min-h-0 flex-col space-y-5 p-6">
-          <div className="space-y-1">
-            {selectedQuote ? (
-              <>
-                <span className="text-2xl font-semibold text-foreground">
-                  In total {formatCurrency(selectedQuote.totalPrice)}
-                </span>
-                <p className="text-sm text-muted-foreground">
-                  {selectedQuote.nights} night
-                  {selectedQuote.nights === 1 ? "" : "s"} for 1 person
-                </p>
-              </>
-            ) : (
-              <>
-                <span className="text-2xl font-semibold text-foreground">
-                  From {formatCurrency(startingPrice)}
-                </span>
-                <p className="text-sm text-muted-foreground">
-                  Minimum available price for 1 night and 1 guest.
-                </p>
-              </>
-            )}
-          </div>
-
-          <PopoverTrigger
-            className="block"
-            nativeButton={false}
-            render={<div />}
-          >
-            <DateRangeTriggerRow
-              activeField={isCalendarPopoverOpen ? activeDateField : undefined}
-              checkInValue={selectedDates?.checkIn}
-              checkOutValue={selectedDates?.checkOut}
-              className={cn(
-                "transition-opacity duration-150",
-                isCalendarPopoverOpen && "pointer-events-none invisible"
-              )}
-              onOpenField={openCalendarPopover}
-            />
-          </PopoverTrigger>
-
-          {selectedQuote ? (
-            <div className="space-y-3 pt-1">
-              <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="text-muted-foreground">
-                  Stay subtotal ({selectedQuote.nights} night
-                  {selectedQuote.nights === 1 ? "" : "s"})
-                </span>
-                <span className="font-medium text-foreground">
-                  {formatCurrency(selectedQuote.nightlySubtotal)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="text-muted-foreground">Cleaning fee</span>
-                <span className="font-medium text-foreground">
-                  {formatCurrency(selectedQuote.cleaningFee)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="text-muted-foreground">Service fee</span>
-                <span className="font-medium text-foreground">
-                  {formatCurrency(selectedQuote.serviceFee)}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm leading-6 text-muted-foreground">
-              Choose a valid date range to see the total and continue to
-              checkout.
-            </p>
-          )}
-
-          {selectedQuote ? (
-            <Link
-              className={cn(buttonVariants({ size: "lg" }), "w-full")}
-              to={reserveSearch}
-            >
-              <HugeiconsIcon
-                icon={CreditCardIcon}
-                size={18}
-                strokeWidth={1.9}
-              />
-              Reserve
-            </Link>
-          ) : (
-            <button
-              className={cn(
-                buttonVariants({ size: "lg", variant: "outline" }),
-                "w-full"
-              )}
-              disabled
-              type="button"
-            >
-              <HugeiconsIcon
-                icon={CreditCardIcon}
-                size={18}
-                strokeWidth={1.9}
-              />
-              Select your dates
-            </button>
-          )}
-
-          <p className="text-center text-sm text-muted-foreground">
-            Your card won&apos;t be charged yet.
-          </p>
-        </CardContent>
-      </Card>
+      {card}
 
       <PopoverContent
         align="end"
-        className="relative [margin-top:calc(-5.15rem-0.75rem)] w-[min(46rem,calc(100vw-1rem))] gap-0 overflow-hidden rounded-[1.8rem] p-0"
+        className="relative [margin-top:calc(-5.15rem-0.75rem)] w-[min(34rem,calc(100vw-1rem))] gap-0 overflow-hidden rounded-[1.8rem] p-0"
         sideOffset={12}
       >
-        <div
-          className="grid items-start gap-6 pt-0"
-          style={{ gridTemplateColumns: "minmax(0,1fr) var(--anchor-width)" }}
-        >
-          <div className="min-w-0 px-6 pt-6">
-            <div className="space-y-1">
-              <p className="text-3xl font-semibold tracking-tight text-foreground">
-                {draftQuote
-                  ? `${draftQuote.nights} night${draftQuote.nights === 1 ? "" : "s"}`
-                  : "Select your dates"}
-              </p>
-              <p className="text-base text-muted-foreground">
-                {draftQuote
-                  ? formatStayDateRange(draftQuote.checkIn, draftQuote.checkOut)
-                  : "Choose check-in and check-out for this stay."}
-              </p>
-            </div>
-          </div>
-
-          <div className="shrink-0">
-            <DateRangeTriggerRow
-              activeField={activeDateField}
-              checkInValue={
-                draftRange?.from
-                  ? toCalendarDateString(draftRange.from)
-                  : undefined
-              }
-              checkOutValue={
-                draftRange?.to ? toCalendarDateString(draftRange.to) : undefined
-              }
-              onOpenField={(field) => {
-                setActiveDateField(field)
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-center px-6 pb-4 pt-5">
-          <Calendar
-            captionLayout="label"
-            className="w-full bg-transparent p-0"
-            classNames={{
-              root: "relative w-full",
-              months:
-                "flex w-full flex-col gap-6 md:grid md:grid-cols-2 md:gap-8",
-              month: "w-full",
-              month_caption:
-                "flex h-12 w-full items-center justify-center px-12 text-lg font-semibold",
-              nav: "pointer-events-none absolute inset-x-0 top-0 z-10 flex w-full items-center justify-between",
-              button_previous:
-                "pointer-events-auto size-10 rounded-full border-0 bg-transparent text-foreground shadow-none hover:bg-transparent hover:text-primary",
-              button_next:
-                "pointer-events-auto size-10 rounded-full border-0 bg-transparent text-foreground shadow-none hover:bg-transparent hover:text-primary",
-              weekdays: "mt-2 grid grid-cols-7 gap-1",
-              weekday:
-                "flex h-9 items-center justify-center text-sm font-medium text-muted-foreground",
-              week: "mt-1 grid grid-cols-7 gap-1",
-            }}
-            disabled={isCalendarDayDisabled}
-            excludeDisabled
-            mode="range"
-            numberOfMonths={isMobileViewport ? 1 : 2}
-            onSelect={(range) => {
-              if (!range?.from) {
-                setDraftRange(undefined)
-                setSelectedDates(null)
-                return
-              }
-
-              if (range.to) {
-                const maybeQuote = getStayBookingQuote(
-                  stay.availabilityCalendar,
-                  stay.bookingPolicy,
-                  toCalendarDateString(range.from),
-                  toCalendarDateString(range.to)
-                )
-
-                if (!maybeQuote) {
-                  setDraftRange({
-                    from: range.from,
-                    to: undefined,
-                  })
-                  setActiveDateField("checkOut")
-                  return
-                }
-
-                setDraftRange(range)
-                setSelectedDates({
-                  checkIn: maybeQuote.checkIn,
-                  checkOut: maybeQuote.checkOut,
-                })
-                setActiveDateField("checkOut")
-                return
-              }
-
-              setDraftRange(range)
-              setActiveDateField("checkOut")
-            }}
-            selected={draftRange}
-          />
-        </div>
-
-        <div className="flex flex-col gap-3 px-6 pb-6 sm:flex-row sm:items-center sm:justify-between">
-          <Button
-            className="order-1 w-full sm:order-none sm:w-auto"
-            onClick={() => {
-              setDraftRange(undefined)
-              setSelectedDates(null)
-              setActiveDateField("checkIn")
-            }}
-            size="lg"
-            type="button"
-            variant="ghost"
-          >
-            <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={1.9} />
-            <span>Clear dates</span>
-          </Button>
-
-          <Button
-            className="w-full sm:w-auto"
-            onClick={() => {
-              setDraftRange(toDateRange(selectedDates))
-              setIsCalendarPopoverOpen(false)
-            }}
-            size="lg"
-            type="button"
-            variant="outline"
-          >
-            Close
-          </Button>
-        </div>
+        {calendarPanelContent}
       </PopoverContent>
     </Popover>
   )

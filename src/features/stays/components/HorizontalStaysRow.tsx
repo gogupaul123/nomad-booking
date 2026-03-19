@@ -12,6 +12,8 @@ type HorizontalStaysRowProps = {
   stays: StayCardData[]
   icon?: typeof ArrowLeft01Icon
   isLoading?: boolean
+  className?: string
+  emptyStateClassName?: string
   emptyState?: {
     icon: typeof ArrowLeft01Icon
     title: string
@@ -42,6 +44,8 @@ export function HorizontalStaysRow({
   stays,
   icon,
   isLoading = false,
+  className,
+  emptyStateClassName,
   emptyState,
 }: HorizontalStaysRowProps) {
   const rowScrollRef = useRef<HTMLDivElement | null>(null)
@@ -127,7 +131,7 @@ export function HorizontalStaysRow({
   }
 
   return (
-    <section className="w-full space-y-4">
+    <section className={cn("w-full space-y-4", className)}>
       <div className="flex items-center justify-between">
         <div className="inline-flex items-center gap-2">
           {icon ? <HugeiconsIcon icon={icon} size={18} strokeWidth={1.9} /> : null}
@@ -189,7 +193,12 @@ export function HorizontalStaysRow({
           ))}
         </div>
       ) : emptyState ? (
-        <div className="flex min-h-[20rem] w-full items-center justify-center px-6 py-8">
+        <div
+          className={cn(
+            "flex min-h-[20rem] w-full items-center justify-center px-6 py-8",
+            emptyStateClassName
+          )}
+        >
           <div className="flex max-w-xl flex-col items-center gap-5 text-center">
             <HugeiconsIcon
               className="text-muted-foreground/70"

@@ -264,10 +264,17 @@ export const persistedStayEntrySchema = z.object({
   updatedAt: z.iso.datetime(),
 })
 
+export const persistedBookingEntrySchema = z.object({
+  booking: bookingSchema,
+  stay: stayCardSchema,
+  updatedAt: z.iso.datetime(),
+})
+
 export const stayActivityStorageSchema = z.object({
   version: z.literal(1),
   recentlyViewed: z.array(persistedStayEntrySchema),
   saved: z.array(persistedStayEntrySchema),
+  bookings: z.array(persistedBookingEntrySchema).default([]),
 })
 
 export type Amenity = z.infer<typeof amenitySchema>
@@ -283,5 +290,6 @@ export type BookingInput = z.infer<typeof bookingInputSchema>
 export type Review = z.infer<typeof reviewSchema>
 export type ReviewInput = z.infer<typeof reviewInputSchema>
 export type PersistedStayEntry = z.infer<typeof persistedStayEntrySchema>
+export type PersistedBookingEntry = z.infer<typeof persistedBookingEntrySchema>
 export type StayActivityStorage = z.infer<typeof stayActivityStorageSchema>
 export type StayFilterBounds = z.infer<typeof stayFilterBoundsSchema>

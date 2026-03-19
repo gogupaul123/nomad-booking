@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react"
 
 import {
+  bookingSchema,
   stayActivityStorageSchema,
   stayCardSchema,
   type StayActivityStorage,
@@ -11,6 +12,7 @@ const EMPTY_STAY_ACTIVITY: StayActivityStorage = {
   version: 1,
   recentlyViewed: [],
   saved: [],
+  bookings: [],
 }
 const MAX_RECENTLY_VIEWED_STAYS = 12
 
@@ -105,6 +107,14 @@ function createEntry(stay: unknown) {
   }
 }
 
+function createBookingEntry(booking: unknown, stay: unknown) {
+  return {
+    booking: bookingSchema.parse(booking),
+    stay: stayCardSchema.parse(stay),
+    updatedAt: new Date().toISOString(),
+  }
+}
+
 export function getStoredStayActivity() {
   return readStoredStayActivity()
 }
@@ -158,6 +168,21 @@ export function toggleSavedStay(stay: unknown) {
   return !alreadySaved
 }
 
+export function recordConfirmedBooking(booking: unknown, stay: unknown) {
+  const entry = createBookingEntry(booking, stay)
+  const currentState = readStoredStayActivity()
+
+  persistStayActivity({
+    ...currentState,
+    bookings: [
+      entry,
+      ...currentState.bookings.filter(
+        (currentEntry) => currentEntry.booking.id !== entry.booking.id
+      ),
+    ],
+  })
+}
+
 export function isStaySaved(stayId: string) {
   return readStoredStayActivity().saved.some((entry) => entry.stay.id === stayId)
 }
@@ -188,4 +213,8 @@ export function getRecentlyViewedStayCards() {
 
 export function getSavedStayIds() {
   return new Set(readStoredStayActivity().saved.map((entry) => entry.stay.id))
+}
+
+export function getBookedStayCards() {
+  return readStoredStayActivity().bookings.map((entry) => entry.stay)
 }

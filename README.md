@@ -1,18 +1,24 @@
 # Nomad Booking
 
-Nomad Booking is a small Booking.com-like travel product tailored to remote workers. The repo folder remains `nomad-cafe` locally, but the product, package, docs, and app naming are all `nomad-booking`.
+Nomad Booking is supposed to be a Booking.com-like travel product tailored to digital nomads looking for nice places to stay (with good wifi, desk, etc. with good working conditions)
+
+# Assumptions
+
+- Auth wasn't specified as a requirement, so persistence for some features that would involve user data (favourites, bookings, reviews) is done via localStorage
 
 ## Stack
 
 - React 19 + TypeScript + Vite
 - Bun for package management and scripts
-- Tailwind CSS v4 + `shadcn/ui`
-- TanStack React Query v5 for server state
-- Zod for boundary validation
-- Vercel Functions with `@vercel/node`
-- Vitest + Testing Library
+- Shadcn UI + Tailwind v4
+- TanStack React Query for server state
+- Zod for boundary/schemas validation
+- Vercel Serverless Functions as the backend
+- Vitest + Testing Library for testing
 
 ## Getting Started
+
+I used bun, however, the project can be run with whatever package manager you prefer.
 
 Install dependencies:
 
@@ -38,18 +44,13 @@ If you only need the frontend shell, use:
 bun run dev:web
 ```
 
-## Scripts
+Or only the backend:
 
-- `bun run dev` starts both the Vite app and the local API
-- `bun run dev:web` starts only the Vite app
-- `bun run dev:api` starts the local API shim
-- `bun run dev:full` is an alias for `bun run dev`
-- `bun run lint` runs ESLint
-- `bun run typecheck` runs project references across app, config, and API code
-- `bun run build` creates the production bundle
-- `bun run test` runs Vitest
+```bash
+bun run dev:api
+```
 
-## Architecture Notes
+## Data architecture
 
 - `src/features/stays/schemas.ts` holds shared Zod schemas for stays plus booking-confirmation types for checkout.
 - `src/features/stays/mock-store.ts` is the mock stay domain store used by the Vercel Functions.
@@ -62,12 +63,6 @@ bun run dev:web
 - `scripts/dev-api.ts` mirrors the same API contract locally so the repo runs with Bun only and without Vercel login friction.
 - `src/features/stays/query-options.ts` co-locates TanStack Query keys and stay query options.
 - The checkout flow ends in a confirmation screen rather than a persistent account area to stay inside the recruiter challenge scope.
-
-## Tradeoffs
-
-- Data is mocked and stored in memory, so stays, confirmed bookings, and newly added reviews are not durable across reloads or cold starts.
-- The app prioritizes recruiter-facing clarity over breadth: browse, stay details, reviews, availability, and checkout are covered without adding auth or a saved bookings dashboard.
-- React Router is used for client-side routing; direct deployment routing rules can be added once the GitHub repo rename and Vercel project settings are finalized.
 
 ## Testing
 
@@ -84,13 +79,16 @@ The repo currently includes:
   2. add a short changelog/release note in the PR or README
   3. create a git tag for the submitted version
 
-## What I Would Do Next
-
-- add a direct-deploy `vercel.json`/project config once the repo rename is finalized
-- improve booking confirmation resilience with a tiny persistence layer
-- expand tests around checkout and review submission
-- add observability wiring beyond console event logs
-
 ## LLM Usage Note
 
-LLMs were used to accelerate implementation, refactoring, and documentation. Guardrails for this repo are captured in `AGENTS.md`: use the correct installed skills, keep data fetching in TanStack Query, validate boundaries with Zod, prefer `shadcn/ui`, and run Bun-based quality gates before finishing.
+- I mostly used GPT 5.4 via Codex.
+- It helped me with accelerating the overall implementation speed, by taking care of all the grunt work like writing tests, api requests, generating mock data and scaffodling the overall project structure.
+- A lot of the UI was generated with AI as well, however most features took manual intervention to get right ( but there's still some generic AI-generated UI left )
+
+## What I would do next
+
+- Implementing a proper persistence layer/database
+- Definitely adding auth
+- Intl translations
+- More polished UI ( some screens still look like generic slop )
+- Maybe add precise coordinates for each stay, in order to implement a map-based search

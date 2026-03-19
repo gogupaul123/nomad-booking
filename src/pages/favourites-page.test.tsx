@@ -1,14 +1,15 @@
-import { render, screen } from "@testing-library/react"
+import { act, render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { FavouritesPage } from "@/pages/favourites-page"
 import {
   clearStoredStayActivity,
+  recordConfirmedBooking,
   recordRecentlyViewedStay,
   toggleSavedStay,
 } from "@/features/stays/persistence"
-import type { StayCard } from "@/features/stays/schemas"
+import type { Booking, StayCard } from "@/features/stays/schemas"
 
 const lisbonStay: StayCard = {
   id: "stay_lisbon-loft",
@@ -41,6 +42,23 @@ const tbilisiStay: StayCard = {
   },
 }
 
+const lisbonBooking: Booking = {
+  id: "booking_lisbon-loft_1",
+  stayId: lisbonStay.id,
+  stayName: lisbonStay.name,
+  location: lisbonStay.location,
+  checkIn: "2026-04-11",
+  checkOut: "2026-04-14",
+  nights: 3,
+  nightlySubtotal: 492,
+  cleaningFee: 28,
+  serviceFee: 19,
+  totalPrice: 539,
+  guestName: "Nomad Booking Guest",
+  email: "guest@nomad-booking.demo",
+  confirmedAt: "2026-03-19T09:20:00.000Z",
+}
+
 describe("FavouritesPage", () => {
   beforeEach(() => {
     clearStoredStayActivity()
@@ -52,26 +70,30 @@ describe("FavouritesPage", () => {
     localStorage.clear()
   })
 
-  it("renders recently viewed and saved stays from local storage", () => {
+  it("renders bookings, recently viewed, and saved stays from local storage", async () => {
+    recordConfirmedBooking(lisbonBooking, lisbonStay)
     recordRecentlyViewedStay(lisbonStay)
     toggleSavedStay(tbilisiStay)
 
-    render(
-      <MemoryRouter>
-        <FavouritesPage />
-      </MemoryRouter>
-    )
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <FavouritesPage />
+        </MemoryRouter>
+      )
+    })
 
     expect(
       screen.getByRole("heading", { name: /your bookings/i })
     ).toBeInTheDocument()
+    expect(screen.getByText(/latest booking/i)).toBeInTheDocument()
     expect(
       screen.getByRole("heading", { name: /recently viewed/i })
     ).toBeInTheDocument()
     expect(
       screen.getByRole("heading", { name: /saved stays/i })
     ).toBeInTheDocument()
-    expect(screen.getByText("Lisbon Loft House")).toBeInTheDocument()
+    expect(screen.getAllByText("Lisbon Loft House").length).toBeGreaterThan(0)
     expect(screen.getByText("Tbilisi Hideout")).toBeInTheDocument()
   })
 })
