@@ -4,7 +4,7 @@ import type {
   StayAvailabilityEntry,
   StayBookingPolicy,
   StayDetails,
-} from "@/features/stays/schemas"
+} from "./schemas"
 
 export type BookingQuote = {
   checkIn: string

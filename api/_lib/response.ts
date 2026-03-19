@@ -1,7 +1,7 @@
 import type { VercelResponse } from "@vercel/node"
 import { ZodError } from "zod"
 
-import { StoreError } from "@/features/stays/mock-store"
+import { StoreError } from "../../src/features/stays/mock-store"
 
 export function sendJson(response: VercelResponse, status: number, payload: unknown) {
   response.status(status).json(payload)

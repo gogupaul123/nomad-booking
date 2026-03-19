@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
 
 import { sendJson, sendRouteError } from "../_lib/response"
-import { listStayCards } from "@/features/stays/mock-store"
-import { staySearchParamsSchema } from "@/features/stays/schemas"
+import { listStayCards } from "../../src/features/stays/mock-store"
+import { staySearchParamsSchema } from "../../src/features/stays/schemas"
 
 export default function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== "GET") {

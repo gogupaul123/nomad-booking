@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -258,32 +258,49 @@ describe("HomePage", () => {
   })
 
   it("shows the full city combobox list inside the filters dialog", async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          stays: [],
-          availableCities: ["Lisbon", "Tbilisi"],
-          filterBounds: mockFilterBounds,
-          total: 0,
-        }),
-        { status: 200 }
-      )
+    let resolveResponse: ((value: Response) => void) | undefined
+
+    vi.mocked(fetch).mockReturnValue(
+      new Promise<Response>((resolve) => {
+        resolveResponse = resolve
+      })
     )
 
     renderHomePage()
 
-    fireEvent.click(await screen.findByRole("button", { name: /open filters/i }))
+    await act(async () => {
+      resolveResponse?.(
+        new Response(
+          JSON.stringify({
+            stays: [],
+            availableCities: ["Lisbon", "Tbilisi"],
+            filterBounds: mockFilterBounds,
+            total: 0,
+          }),
+          { status: 200 }
+        )
+      )
+    })
+
+    await act(async () => {
+      fireEvent.click(await screen.findByRole("button", { name: /open filters/i }))
+    })
     expect(await screen.findByText(/refine stays/i)).toBeInTheDocument()
 
-    const cityCombobox = screen.getByRole("combobox", {
+    const cityCombobox = await screen.findByRole("combobox", {
       name: /filter by city/i,
     })
 
-    cityCombobox.focus()
-    fireEvent.keyDown(cityCombobox, { key: "ArrowDown" })
+    await act(async () => {
+      cityCombobox.focus()
+      fireEvent.click(cityCombobox)
+      fireEvent.keyDown(cityCombobox, { key: "ArrowDown" })
+    })
 
-    expect(await screen.findByText("Lisbon")).toBeInTheDocument()
-    expect(await screen.findByText("Tbilisi")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("Lisbon")).toBeInTheDocument()
+      expect(screen.getByText("Tbilisi")).toBeInTheDocument()
+    })
     expect(
       screen.queryByText(/no cities match this search/i)
     ).not.toBeInTheDocument()
@@ -328,20 +345,24 @@ describe("HomePage", () => {
 
     renderHomePage()
 
-    fireEvent.click(screen.getByRole("button", { name: /open filters/i }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /open filters/i }))
+    })
     expect(await screen.findByText(/refine stays/i)).toBeInTheDocument()
 
-    resolveResponse?.(
-      new Response(
-        JSON.stringify({
-          stays: [],
-          availableCities: ["Lisbon", "Tbilisi"],
-          filterBounds: mockFilterBounds,
-          total: 0,
-        }),
-        { status: 200 }
+    await act(async () => {
+      resolveResponse?.(
+        new Response(
+          JSON.stringify({
+            stays: [],
+            availableCities: ["Lisbon", "Tbilisi"],
+            filterBounds: mockFilterBounds,
+            total: 0,
+          }),
+          { status: 200 }
+        )
       )
-    )
+    })
 
     await waitFor(() => {
       expect(
@@ -351,10 +372,15 @@ describe("HomePage", () => {
 
     const cityCombobox = screen.getByRole("combobox", { name: /filter by city/i })
 
-    cityCombobox.focus()
-    fireEvent.keyDown(cityCombobox, { key: "ArrowDown" })
+    await act(async () => {
+      cityCombobox.focus()
+      fireEvent.click(cityCombobox)
+      fireEvent.keyDown(cityCombobox, { key: "ArrowDown" })
+    })
 
-    expect(await screen.findByText("Lisbon")).toBeInTheDocument()
-    expect(await screen.findByText("Tbilisi")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("Lisbon")).toBeInTheDocument()
+      expect(screen.getByText("Tbilisi")).toBeInTheDocument()
+    })
   })
 })

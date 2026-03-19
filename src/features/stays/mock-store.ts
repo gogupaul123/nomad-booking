@@ -1,4 +1,9 @@
 import {
+  getMinimumAvailableNightlyPrice,
+  getNextAvailableCheckIn,
+  getStayBookingQuote,
+} from "./booking"
+import {
   stayCardsResponseSchema,
   stayDetailsSchema,
   bookingSchema,
@@ -15,12 +20,7 @@ import {
   type Review,
   type ReviewInput,
   type StayBookingPolicy,
-} from "@/features/stays/schemas"
-import {
-  getMinimumAvailableNightlyPrice,
-  getNextAvailableCheckIn,
-  getStayBookingQuote,
-} from "@/features/stays/booking"
+} from "./schemas"
 
 type StayRecord = Omit<
   StayDetails,
