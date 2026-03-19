@@ -8,6 +8,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { toast } from "sonner"
 
 import { PaymentCard } from "@/components/billingsdk/payment-card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -73,6 +74,13 @@ export function CheckoutPage() {
       if (stayQuery.data) {
         recordConfirmedBooking(booking, stayQuery.data)
       }
+
+      toast.success("Booking confirmed", {
+        description: `${booking.stayName} is reserved from ${formatStayDateRange(
+          booking.checkIn,
+          booking.checkOut
+        )}.`,
+      })
 
       void queryClient.invalidateQueries({
         queryKey: stayKeys.detail(stayId),

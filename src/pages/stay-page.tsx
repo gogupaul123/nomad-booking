@@ -17,6 +17,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { Link, useParams } from "react-router-dom"
+import { toast } from "sonner"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -288,6 +289,7 @@ export function StayPage() {
   )
   const [reviewError, setReviewError] = useState<string | null>(null)
   const reviewsRowRef = useRef<HTMLDivElement | null>(null)
+  const reviewsContentRef = useRef<HTMLDivElement | null>(null)
   const previousReviewsSignatureRef = useRef("")
   const [canScrollReviewsPrev, setCanScrollReviewsPrev] = useState(false)
   const [canScrollReviewsNext, setCanScrollReviewsNext] = useState(false)
@@ -348,6 +350,9 @@ export function StayPage() {
 
       setIsReviewDialogOpen(false)
       resetReviewDraft()
+      toast.success("Review posted", {
+        description: "Your review is now visible on this stay.",
+      })
 
       void queryClient.invalidateQueries({
         queryKey: stayKeys.lists(),
@@ -466,7 +471,18 @@ export function StayPage() {
       return
     }
 
-    toggleSavedStay(stay)
+    const isSavedNow = toggleSavedStay(stay)
+
+    if (isSavedNow) {
+      toast.success("Saved to favourites", {
+        description: `${stay.name} is now in your saved stays.`,
+      })
+      return
+    }
+
+    toast.info("Removed from favourites", {
+      description: `${stay.name} was removed from your saved stays.`,
+    })
   }, [stay])
 
   const handleReviewSubmit = useCallback(
@@ -603,6 +619,7 @@ export function StayPage() {
   useEffect(() => {
     const element = reviewsRowRef.current
     if (!element) return
+    const content = reviewsContentRef.current
 
     const onScroll = () => updateReviewsScrollControls()
     element.addEventListener("scroll", onScroll, { passive: true })
@@ -615,6 +632,9 @@ export function StayPage() {
         : null
 
     resizeObserver?.observe(element)
+    if (content) {
+      resizeObserver?.observe(content)
+    }
     const frameId = window.requestAnimationFrame(() => {
       updateReviewsScrollControls()
     })
@@ -1180,37 +1200,44 @@ export function StayPage() {
 
                   <div
                     className={cn(
-                      "no-scrollbar flex items-center gap-5 overflow-x-auto px-5 py-4",
-                      !reviewsOverflowing && "justify-center"
+                      "no-scrollbar overflow-x-auto"
                     )}
                     ref={reviewsRowRef}
                   >
-                    {reviews.map((review) => (
-                      <Card
-                        className="w-full max-w-[400px] shrink-0 self-center rounded-[1.5rem] border border-border/70 bg-card/70 py-0"
-                        key={review.id}
-                        size="sm"
-                      >
-                        <CardContent className="space-y-4 p-5">
-                          <div className="flex items-start justify-between gap-4">
-                            <p className="text-sm font-semibold text-foreground">
-                              {review.name}
-                            </p>
-                            <div className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                              <HugeiconsIcon
-                                icon={StarIcon}
-                                size={14}
-                                strokeWidth={1.9}
-                              />
-                              {formatRating(review.rating)}
+                    <div
+                      className={cn(
+                        "flex min-w-full w-max items-center gap-5 px-5 py-4",
+                        !reviewsOverflowing && "justify-center"
+                      )}
+                      ref={reviewsContentRef}
+                    >
+                      {reviews.map((review) => (
+                        <Card
+                          className="w-full max-w-[400px] shrink-0 self-center rounded-[1.5rem] border border-border/70 bg-card/70 py-0"
+                          key={review.id}
+                          size="sm"
+                        >
+                          <CardContent className="space-y-4 p-5">
+                            <div className="flex items-start justify-between gap-4">
+                              <p className="text-sm font-semibold text-foreground">
+                                {review.name}
+                              </p>
+                              <div className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                                <HugeiconsIcon
+                                  icon={StarIcon}
+                                  size={14}
+                                  strokeWidth={1.9}
+                                />
+                                {formatRating(review.rating)}
+                              </div>
                             </div>
-                          </div>
-                          <p className="text-sm leading-7 text-muted-foreground">
-                            {review.comment}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            <p className="text-sm leading-7 text-muted-foreground">
+                              {review.comment}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : (

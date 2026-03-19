@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { memo, type ReactNode } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { FavouriteIcon, StarIcon } from "@hugeicons/core-free-icons"
+import { toast } from "sonner"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { AmenityChip } from "@/features/stays/components/AmenityChip"
@@ -174,7 +175,18 @@ export const StayCard = memo(function StayCard(props: StayCardProps) {
             aria-pressed={isFavourite}
             className="group pointer-events-auto absolute right-2 bottom-2 z-20 inline-flex min-h-9 min-w-9 cursor-pointer items-center justify-center p-0.5 text-foreground transition-transform duration-150 hover:scale-110 active:scale-95"
             onClick={() => {
-              toggleSavedStay(stay)
+              const isSavedNow = toggleSavedStay(stay)
+
+              if (isSavedNow) {
+                toast.success("Saved to favourites", {
+                  description: `${stay.name} is now in your saved stays.`,
+                })
+                return
+              }
+
+              toast.info("Removed from favourites", {
+                description: `${stay.name} was removed from your saved stays.`,
+              })
             }}
             type="button"
           >

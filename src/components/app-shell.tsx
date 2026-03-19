@@ -2,6 +2,7 @@ import { Outlet, ScrollRestoration, useLocation } from "react-router-dom"
 
 import { AppHeader } from "@/components/app-header"
 import { StayDetailsHeaderProvider } from "@/components/stay-details-header"
+import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 
 export function AppShell() {
@@ -25,6 +26,7 @@ export function AppShell() {
           </main>
         </div>
       </StayDetailsHeaderProvider>
+      <Toaster closeButton duration={2800} position="top-right" />
       <ScrollRestoration />
     </div>
   )
